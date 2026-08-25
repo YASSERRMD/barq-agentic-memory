@@ -314,3 +314,31 @@ supersession precedence, end-to-end scope isolation).
 **Deviations:** 4 commits vs floor 20; the phase is one cohesive
 pipeline (scoring module, executor module, engine wiring) where further
 splitting would break per-commit compilability. Recorded honestly.
+
+---
+
+## Phase 07 — Classification and Extraction
+
+**Branch:** `phase/07-classification-extraction`
+**Objective:** MemoryClassifier and ExtractionProvider supporting
+caller-supplied structured memory, rules, local models, external LLMs,
+and custom HTTP extractors. The engine must function with zero LLM
+dependency.
+
+**Exit criteria:** Met — rules ship as the default; LLM/HTTP/local-model
+providers implement the same two traits without engine changes;
+remember_auto() fails fast (Unsupported) when no classifier is attached,
+keeping zero-LLM operation structural rather than incidental.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (165 hermetic tests across 9 crates)
+```
+
+**Live verification:** none required — pure logic, deterministic tests.
+
+**Deviations:** 3 commits vs floor 20; single cohesive crate plus a
+thin engine integration layer. Recorded honestly.

@@ -31,6 +31,7 @@ pub struct MemoryEngine {
     pub(crate) working: Arc<dyn WorkingMemoryProvider>,
     pub(crate) vector: Option<Arc<dyn VectorProvider>>,
     pub(crate) embedder: Option<Arc<dyn EmbeddingProvider>>,
+    pub(crate) classifier: Option<Arc<dyn memory_classifier::MemoryClassifier>>,
 }
 
 /// A canonical record returned with its similarity score.
@@ -121,7 +122,20 @@ impl MemoryEngine {
             working,
             vector,
             embedder,
+            classifier: None,
         })
+    }
+
+    /// Attaches a classifier for auto-classified writes.
+    ///
+    /// Optional by design: engines without one still support fully
+    /// typed `remember()` calls, preserving zero-LLM operation.
+    pub fn with_classifier(
+        mut self,
+        classifier: Arc<dyn memory_classifier::MemoryClassifier>,
+    ) -> Self {
+        self.classifier = Some(classifier);
+        self
     }
 
     /// Configuration the engine was assembled with.
@@ -203,6 +217,49 @@ impl MemoryEngine {
         let record = request.into_record(self.config.default_scope.clone());
         let saved = self.store.put(&record).await?;
         self.index_vector(&saved).await?;
+        Ok(saved)
+    }
+
+    /// Remembers text with automatic classification.
+    ///
+    /// Requires a classifier; without one, callers must state the type
+    /// explicitly via [`remember`], which is what keeps the engine
+    /// functional with zero LLM dependency.
+    pub async fn remember_auto(&self, text: impl Into<String>) -> MemoryResult<MemoryRecord> {
+        let Some(classifier) = &self.classifier else {
+            return Err(MemoryError::Unsupported(
+                "remember_auto requires a classifier (see with_classifier)".into(),
+            ));
+        };
+        let text = text.into();
+        let input = memory_classifier::ClassifierInput::text(text.clone());
+        let classification = classifier.classify(&input).await?;
+
+        let mut request = RememberRequest::new(classification.memory_type, text)
+            .with_confidence(classification.confidence);
+        if let Some(subtype) = &classification.subtype {
+            request = request.with_subtype(subtype.clone());
+        }
+        self.remember(request).await
+    }
+
+    /// Extracts discrete memories from unstructured conversation and
+    /// stores each one, returning what was saved.
+    ///
+    /// Requires an extraction provider; see [`with_classifier`] for the
+    /// zero-LLM stance on optional intelligence.
+    pub async fn extract_and_remember(
+        &self,
+        extractor: &dyn memory_classifier::ExtractionProvider,
+        conversation: &str,
+    ) -> MemoryResult<Vec<MemoryRecord>> {
+        let extracted = extractor.extract(conversation).await?;
+        let mut saved = Vec::with_capacity(extracted.len());
+        for item in extracted {
+            let request =
+                RememberRequest::new(item.memory_type, item.text).with_confidence(item.confidence);
+            saved.push(self.remember(request).await?);
+        }
         Ok(saved)
     }
 
@@ -848,5 +905,62 @@ mod semantic_tests {
             .await
             .unwrap_err();
         assert!(matches!(err, MemoryError::Unsupported(_)));
+    }
+}
+
+#[cfg(test)]
+mod classifier_tests {
+    use super::*;
+    use memory_classifier::{RuleBasedClassifier, RuleBasedExtractor};
+    use memory_domain::MemoryType;
+
+    async fn embedded() -> MemoryEngine {
+        MemoryEngine::from_config(EngineConfig::default())
+            .await
+            .expect("engine")
+    }
+
+    #[tokio::test]
+    async fn remember_auto_classifies_preferences() {
+        let engine = embedded()
+            .await
+            .with_classifier(Arc::new(RuleBasedClassifier::default()));
+        let r = engine
+            .remember_auto("Customer prefers email contact")
+            .await
+            .expect("remember_auto");
+        assert_eq!(r.memory_type, MemoryType::Semantic);
+        assert_eq!(r.subtype.as_deref(), Some("preference"));
+    }
+
+    #[tokio::test]
+    async fn remember_auto_without_classifier_is_unsupported() {
+        let engine = embedded().await;
+        let err = engine.remember_auto("anything").await.unwrap_err();
+        assert!(matches!(err, MemoryError::Unsupported(_)));
+    }
+
+    #[tokio::test]
+    async fn extract_and_remember_stores_only_durable_facts() {
+        let engine = embedded().await;
+        let saved = engine
+            .extract_and_remember(
+                &RuleBasedExtractor,
+                "Hello! The customer prefers email over phone. She must get invoices by friday.",
+            )
+            .await
+            .expect("extract+remember");
+
+        assert_eq!(saved.len(), 2, "small talk dropped, two facts kept");
+        assert!(
+            saved
+                .iter()
+                .any(|s| s.content.text.contains("prefers email")),
+        );
+        assert!(
+            saved
+                .iter()
+                .any(|s| s.memory_type == MemoryType::Prospective),
+        );
     }
 }
