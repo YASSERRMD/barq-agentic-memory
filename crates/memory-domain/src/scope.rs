@@ -181,7 +181,11 @@ mod tests {
         assert!(query.contains(&record_scope()));
 
         let other_tenant = MemoryScope::builder().tenant("other").build();
-        assert!(!query.contains(&MemoryScope { tenant_id: None, ..other_tenant }));
+        let no_tenant = MemoryScope {
+            tenant_id: None,
+            ..other_tenant.clone()
+        };
+        assert!(!query.contains(&no_tenant), "missing pinned dim fails");
         assert!(query.contains(&record_scope()), "same tenant passes");
         assert!(!query.contains(&other_tenant));
     }
