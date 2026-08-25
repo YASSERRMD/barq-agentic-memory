@@ -211,13 +211,106 @@ impl MemoryEngine {
         Ok(())
     }
 
-    /// Stores a new memory and returns the canonical record.
+    /// Stores a new memory, honoring deduplication when enabled.
     pub async fn remember(&self, request: RememberRequest) -> MemoryResult<MemoryRecord> {
         request.validated(&self.config)?;
         let record = request.into_record(self.config.default_scope.clone());
+
+        if self.config.dedup_enabled {
+            if let Some(existing) = self.deduplicate(&record).await? {
+                return Ok(existing);
+            }
+        }
+
         let saved = self.store.put(&record).await?;
         self.index_vector(&saved).await?;
         Ok(saved)
+    }
+
+    /// Runs the dedup cascade against same-type candidates in scope.
+    ///
+    /// Returns `Ok(Some(existing))` when the write should not proceed
+    /// as a plain add (ignored duplicates return the original; merges
+    /// perform the supersession and return the successor).
+    async fn deduplicate(&self, record: &MemoryRecord) -> MemoryResult<Option<MemoryRecord>> {
+        use memory_dedup::DedupAction;
+
+        let query = MemoryQuery {
+            scope: record.scope.clone(),
+            memory_types: vec![record.memory_type],
+            statuses: vec![memory_domain::MemoryStatus::Active],
+            subject: None,
+            text: None,
+            valid_at: None,
+            limit: 20,
+        };
+        let candidates = self.store.query(&query).await?;
+        if candidates.is_empty() {
+            return Ok(None);
+        }
+
+        // Semantic signal is best-effort and computed up front so the
+        // cascade stays a pure synchronous function of its inputs.
+        let mut similarities: std::collections::HashMap<memory_domain::MemoryId, f32> =
+            std::collections::HashMap::new();
+        if let Some(embedder) = self.embedder.as_ref() {
+            let incoming_text = record.content.text.clone();
+            let candidate_texts: Vec<String> =
+                candidates.iter().map(|c| c.content.text.clone()).collect();
+            let mut to_embed = vec![incoming_text];
+            to_embed.extend(candidate_texts);
+            if let Ok(vectors) = embedder.embed(&to_embed).await {
+                let query_vec = &vectors[0];
+                for (candidate, vec) in candidates.iter().zip(&vectors[1..]) {
+                    similarities.insert(
+                        candidate.id,
+                        memory_provider_api::cosine_similarity(query_vec, vec),
+                    );
+                }
+            }
+        }
+
+        let engine = memory_dedup::DedupEngine::default();
+        let decision = engine.evaluate(record, &candidates, |candidate| {
+            similarities.get(&candidate.id).copied().unwrap_or(0.0)
+        });
+
+        match decision.action {
+            DedupAction::Ignore => {
+                let target = decision
+                    .target
+                    .expect("ignore decisions always name a target");
+                Ok(Some(
+                    self.store
+                        .get(&target, &record.scope)
+                        .await?
+                        .expect("candidate came from this store"),
+                ))
+            }
+            DedupAction::Merge => {
+                let target = decision.target.expect("merge decisions name a target");
+                let successor = record.derive_successor(record.content.clone());
+                self.store.put(&successor).await?;
+                self.remove_vector(&target).await?;
+
+                let mut retired = candidates
+                    .iter()
+                    .find(|c| c.id == target)
+                    .expect("merge target among candidates")
+                    .clone();
+                retired.status = memory_domain::MemoryStatus::Superseded;
+                retired.updated_at = chrono::Utc::now();
+                self.store.update(&retired).await?;
+                Ok(Some(successor))
+            }
+            DedupAction::Review => {
+                let mut quarantined = record.clone();
+                quarantined.status = memory_domain::MemoryStatus::Quarantined;
+                let saved = self.store.put(&quarantined).await?;
+                Ok(Some(saved))
+            }
+            DedupAction::Link | DedupAction::Add => Ok(None),
+        }
     }
 
     /// Remembers text with automatic classification.
@@ -962,5 +1055,102 @@ mod classifier_tests {
                 .iter()
                 .any(|s| s.memory_type == MemoryType::Prospective),
         );
+    }
+}
+
+#[cfg(test)]
+mod dedup_tests {
+    use super::*;
+    use memory_domain::MemoryType;
+    use memory_domain::config::EngineConfig;
+
+    async fn dedup_engine() -> MemoryEngine {
+        MemoryEngine::from_config(EngineConfig {
+            dedup_enabled: true,
+            vector: Some(memory_domain::config::VectorStoreConfig::InMemory),
+            embedding: Some(memory_domain::config::EmbeddingConfig::Hashing { dimensions: 256 }),
+            ..EngineConfig::default()
+        })
+        .await
+        .expect("dedup engine")
+    }
+
+    #[tokio::test]
+    async fn identical_remember_returns_original_untouched() {
+        let engine = dedup_engine().await;
+        let first = engine
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "Atlas uses PostgreSQL")
+                    .with_subject(memory_domain::MemorySubject::new("atlas").with_type("project")),
+            )
+            .await
+            .expect("first");
+
+        let second = engine
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "Atlas uses PostgreSQL")
+                    .with_subject(memory_domain::MemorySubject::new("atlas").with_type("project")),
+            )
+            .await
+            .expect("second is ignored as duplicate");
+
+        assert_eq!(first.id, second.id, "duplicate returns the original");
+    }
+
+    #[tokio::test]
+    async fn reworded_duplicates_ignore_regardless_of_case() {
+        let engine = dedup_engine().await;
+        let first = engine
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "customer prefers email")
+                    .with_subject(memory_domain::MemorySubject::new("cust-1")),
+            )
+            .await
+            .expect("first");
+        let second = engine
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "Customer PREFERS email.")
+                    .with_subject(memory_domain::MemorySubject::new("cust-1")),
+            )
+            .await
+            .expect("normalized duplicate");
+
+        assert_eq!(first.id, second.id);
+    }
+
+    #[tokio::test]
+    async fn distinct_facts_still_add() {
+        let engine = dedup_engine().await;
+        let a = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "Atlas uses PostgreSQL",
+            ))
+            .await
+            .expect("a");
+        let b = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "The kitchen fridge needs restocking",
+            ))
+            .await
+            .expect("b");
+        assert_ne!(a.id, b.id);
+    }
+
+    #[tokio::test]
+    async fn dedup_disabled_by_default() {
+        let engine = MemoryEngine::from_config(EngineConfig::default())
+            .await
+            .unwrap();
+        let a = engine
+            .remember(RememberRequest::new(MemoryType::Semantic, "same text"))
+            .await
+            .unwrap();
+        let b = engine
+            .remember(RememberRequest::new(MemoryType::Semantic, "same text"))
+            .await
+            .unwrap();
+        assert_ne!(a.id, b.id, "without dedup, duplicates are separate rows");
     }
 }

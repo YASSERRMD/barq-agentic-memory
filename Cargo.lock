@@ -801,6 +801,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "memory-classifier",
  "memory-domain",
  "memory-provider-api",
  "memory-retrieval",
@@ -811,6 +812,20 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "tokio",
+]
+
+[[package]]
+name = "memory-dedup"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "memory-domain",
+ "memory-provider-api",
+ "serde",
+ "serde_json",
+ "sha2",
  "tokio",
 ]
 

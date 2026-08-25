@@ -34,6 +34,9 @@ pub struct EngineConfig {
     pub embedding: Option<EmbeddingConfig>,
     /// Working-state store selection; defaults to the in-process store.
     pub working: Option<WorkingStoreConfig>,
+    /// Consult deduplication on writes (phase 8). Off by default until
+    /// callers have tuned thresholds for their domain.
+    pub dedup_enabled: bool,
     /// Engine limits.
     pub limits: LimitsConfig,
 }
@@ -48,6 +51,7 @@ impl Default for EngineConfig {
             vector: None,
             embedding: None,
             working: None,
+            dedup_enabled: false,
             limits: LimitsConfig::default(),
         }
     }
