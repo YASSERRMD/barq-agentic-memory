@@ -143,6 +143,11 @@ macro_rules! scope_dim {
 }
 
 impl MemoryScopeBuilder {
+    /// Starts an empty scope.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     scope_dim!(tenant, tenant_id);
     scope_dim!(organization, organization_id);
     scope_dim!(workspace, workspace_id);
