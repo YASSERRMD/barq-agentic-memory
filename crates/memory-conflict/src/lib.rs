@@ -7,6 +7,5 @@
 
 pub mod resolution;
 
-pub use resolution::{
-    ConflictAnalysis, ConflictKind, ResolutionPolicy, SupersessionOutcome,
-};
+pub use resolution::detects_negation;
+pub use resolution::{ConflictAnalysis, ConflictKind, ResolutionPolicy, SupersessionOutcome};

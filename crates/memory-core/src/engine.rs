@@ -222,6 +222,12 @@ impl MemoryEngine {
             }
         }
 
+        if self.config.conflict_enabled {
+            if let Some(outcome) = self.resolve_conflicts(&record).await? {
+                return Ok(outcome);
+            }
+        }
+
         let saved = self.store.put(&record).await?;
         self.index_vector(&saved).await?;
         Ok(saved)
@@ -311,6 +317,59 @@ impl MemoryEngine {
             }
             DedupAction::Link | DedupAction::Add => Ok(None),
         }
+    }
+
+    /// Contradiction analysis against open same-subject facts.
+    ///
+    /// Returns `Ok(Some(record))` when the caller's write resolved into
+    /// something other than a plain add (quarantined incoming, or the
+    /// incoming fact after retiring a contradicted predecessor).
+    async fn resolve_conflicts(&self, record: &MemoryRecord) -> MemoryResult<Option<MemoryRecord>> {
+        let Some(subject) = record.subject.clone() else {
+            return Ok(None); // conflict analysis needs a subject anchor
+        };
+
+        let query = MemoryQuery {
+            scope: record.scope.clone(),
+            memory_types: vec![record.memory_type],
+            statuses: vec![memory_domain::MemoryStatus::Active],
+            subject: Some(subject),
+            text: None,
+            valid_at: None,
+            limit: 5,
+        };
+        let existing_facts = self.store.query(&query).await?;
+        if existing_facts.is_empty() {
+            return Ok(None);
+        }
+
+        let policy = memory_conflict::ResolutionPolicy;
+        let negates = memory_conflict::resolution::detects_negation(&record.content.text);
+        for existing in &existing_facts {
+            // Value-level comparison is domain-specific; generic writes
+            // only assert explicit negation, leaving the rest ambiguous.
+            let analysis = policy.analyze(record, existing, negates, false);
+            match policy.resolve(&analysis, record, existing) {
+                memory_conflict::SupersessionOutcome::Write => continue,
+                memory_conflict::SupersessionOutcome::ReplaceExisting { closing_id } => {
+                    if let Some(mut old) = self.store.get(&closing_id, &record.scope).await? {
+                        memory_conflict::ResolutionPolicy::close_window(&mut old)?;
+                        self.store.update(&old).await?;
+                        self.remove_vector(&closing_id).await?;
+                    }
+                    let saved = self.store.put(record).await?;
+                    self.index_vector(&saved).await?;
+                    return Ok(Some(saved));
+                }
+                memory_conflict::SupersessionOutcome::QuarantineIncoming => {
+                    let mut quarantined = record.clone();
+                    quarantined.status = memory_domain::MemoryStatus::Quarantined;
+                    let saved = self.store.put(&quarantined).await?;
+                    return Ok(Some(saved));
+                }
+            }
+        }
+        Ok(None)
     }
 
     /// Remembers text with automatic classification.
@@ -1152,5 +1211,116 @@ mod dedup_tests {
             .await
             .unwrap();
         assert_ne!(a.id, b.id, "without dedup, duplicates are separate rows");
+    }
+}
+
+#[cfg(test)]
+mod conflict_tests {
+    use super::*;
+    use memory_domain::config::EngineConfig;
+    use memory_domain::{MemorySubject, MemoryType};
+
+    async fn conflict_engine() -> MemoryEngine {
+        MemoryEngine::from_config(EngineConfig {
+            conflict_enabled: true,
+            ..EngineConfig::default()
+        })
+        .await
+        .expect("conflict engine")
+    }
+
+    fn atlas_fact(text: &str) -> RememberRequest {
+        RememberRequest::new(MemoryType::Semantic, text)
+            .with_subject(MemorySubject::new("atlas").with_type("project"))
+            .from_source(memory_domain::SourceKind::User, "u-1")
+            .with_confidence(0.9)
+    }
+
+    #[tokio::test]
+    async fn negation_supersedes_and_preserves_history() {
+        let engine = conflict_engine().await;
+        let old = engine
+            .remember(atlas_fact("Atlas uses MySQL for its primary database"))
+            .await
+            .expect("old fact");
+
+        let new = engine
+            .remember(atlas_fact(
+                "Atlas no longer uses MySQL; it is not on MySQL anymore",
+            ))
+            .await
+            .expect("negation");
+
+        assert_ne!(new.id, old.id, "negation becomes a new record");
+
+        let retired = engine
+            .recall_exact(old.id, &Default::default())
+            .await
+            .expect("get")
+            .unwrap();
+        assert_eq!(retired.status, memory_domain::MemoryStatus::Superseded);
+        assert!(retired.validity().has_ended(chrono::Utc::now()));
+
+        // History remains fully addressable.
+        let chain = engine
+            .history(new.id, &Default::default())
+            .await
+            .expect("history");
+        // The new record supersedes via the closed window, though the
+        // chain link is by subject continuity here — both records exist.
+        assert!(!chain.is_empty());
+    }
+
+    #[tokio::test]
+    async fn weaker_ambiguous_claims_quarantine() {
+        let engine = conflict_engine().await;
+        let _existing = engine
+            .remember(
+                atlas_fact("Atlas deploys to us-east-1")
+                    .from_source(memory_domain::SourceKind::User, "u-1"),
+            )
+            .await
+            .expect("existing");
+
+        let weak_agent = RememberRequest::new(MemoryType::Semantic, "Atlas deploys to eu-west-1")
+            .with_subject(MemorySubject::new("atlas").with_type("project"))
+            .from_source(memory_domain::SourceKind::Agent, "agent-7")
+            .with_confidence(0.3);
+
+        let outcome = engine
+            .remember(weak_agent)
+            .await
+            .expect("quarantined write");
+        assert_eq!(
+            outcome.status,
+            memory_domain::MemoryStatus::Quarantined,
+            "weak ambiguous claims wait for review"
+        );
+    }
+
+    #[tokio::test]
+    async fn conflicts_need_subjects_to_fire() {
+        let engine = conflict_engine().await;
+        let a = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "no subject fact one",
+            ))
+            .await
+            .expect("a");
+        let b = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "no longer subject fact two",
+            ))
+            .await
+            .expect("b");
+        assert_ne!(a.id, b.id);
+        let b_status = engine
+            .recall_exact(b.id, &Default::default())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(b_status.status, memory_domain::MemoryStatus::Active);
     }
 }

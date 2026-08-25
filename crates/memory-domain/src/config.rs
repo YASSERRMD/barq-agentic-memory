@@ -37,6 +37,10 @@ pub struct EngineConfig {
     /// Consult deduplication on writes (phase 8). Off by default until
     /// callers have tuned thresholds for their domain.
     pub dedup_enabled: bool,
+    /// Run contradiction analysis against open same-subject facts on
+    /// writes (phase 9). Off by default; supersession keeps history so
+    /// enabling is safe but changes ranking behavior.
+    pub conflict_enabled: bool,
     /// Engine limits.
     pub limits: LimitsConfig,
 }
@@ -52,6 +56,7 @@ impl Default for EngineConfig {
             embedding: None,
             working: None,
             dedup_enabled: false,
+            conflict_enabled: false,
             limits: LimitsConfig::default(),
         }
     }

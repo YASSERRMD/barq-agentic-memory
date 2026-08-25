@@ -180,7 +180,12 @@ fn same_subject(a: &MemoryRecord, b: &MemoryRecord) -> bool {
 
 /// Negation cues for rule-based detection.
 const NEGATION_CUES: [&str; 6] = [
-    " no longer ", " is not ", " does not ", " never ", " stopped ", " removed ",
+    " no longer ",
+    " is not ",
+    " does not ",
+    " never ",
+    " stopped ",
+    " removed ",
 ];
 
 /// Cheap negation check over normalized text.
@@ -197,7 +202,12 @@ mod tests {
     use chrono::Duration;
     use memory_domain::{MemoryContent, MemorySubject, MemoryType};
 
-    fn fact(text: &str, subject: &str, source: memory_domain::SourceKind, confidence: f32) -> MemoryRecord {
+    fn fact(
+        text: &str,
+        subject: &str,
+        source: memory_domain::SourceKind,
+        confidence: f32,
+    ) -> MemoryRecord {
         let mut r = MemoryRecord::new(MemoryType::Semantic, MemoryContent::from_text(text))
             .with_subject(MemorySubject::new(subject).with_type("project"))
             .with_confidence(confidence);
@@ -210,23 +220,49 @@ mod tests {
         assert!(detects_negation("Atlas no longer uses MySQL"));
         assert!(detects_negation("Atlas is NOT on postgres"));
         assert!(detects_negation("we stopped using redis"));
-        assert!(!detects_negation("Atlas uses PostgreSQL and notes are stored elsewhere"));
+        assert!(!detects_negation(
+            "Atlas uses PostgreSQL and notes are stored elsewhere"
+        ));
     }
 
     #[test]
     fn different_subjects_are_always_consistent() {
         let policy = ResolutionPolicy;
-        let existing = fact("Atlas uses MySQL", "atlas", memory_domain::SourceKind::User, 0.9);
-        let incoming = fact("Globex uses PostgreSQL", "globex", memory_domain::SourceKind::Agent, 0.5);
+        let existing = fact(
+            "Atlas uses MySQL",
+            "atlas",
+            memory_domain::SourceKind::User,
+            0.9,
+        );
+        let incoming = fact(
+            "Globex uses PostgreSQL",
+            "globex",
+            memory_domain::SourceKind::Agent,
+            0.5,
+        );
         let a = policy.analyze(&incoming, &existing, true, false);
-        assert_eq!(a.kind, ConflictKind::Consistent, "subject mismatch short-circuits");
+        assert_eq!(
+            a.kind,
+            ConflictKind::Consistent,
+            "subject mismatch short-circuits"
+        );
     }
 
     #[tokio::test]
     async fn contradiction_supersedes_regardless_of_strength() {
         let policy = ResolutionPolicy;
-        let existing = fact("Atlas uses MySQL", "atlas", memory_domain::SourceKind::User, 0.95);
-        let incoming = fact("Atlas does not use MySQL anymore", "atlas", memory_domain::SourceKind::Agent, 0.4);
+        let existing = fact(
+            "Atlas uses MySQL",
+            "atlas",
+            memory_domain::SourceKind::User,
+            0.95,
+        );
+        let incoming = fact(
+            "Atlas does not use MySQL anymore",
+            "atlas",
+            memory_domain::SourceKind::Agent,
+            0.4,
+        );
 
         let analysis = policy.analyze(&incoming, &existing, true, false);
         assert_eq!(analysis.kind, ConflictKind::Contradicts);
@@ -251,8 +287,18 @@ mod tests {
     #[test]
     fn value_conflicts_quarantine_when_incoming_is_weaker() {
         let policy = ResolutionPolicy;
-        let existing = fact("Atlas uses PostgreSQL 16", "atlas", memory_domain::SourceKind::User, 0.9);
-        let incoming = fact("Atlas uses PostgreSQL 17", "atlas", memory_domain::SourceKind::Agent, 0.4);
+        let existing = fact(
+            "Atlas uses PostgreSQL 16",
+            "atlas",
+            memory_domain::SourceKind::User,
+            0.9,
+        );
+        let incoming = fact(
+            "Atlas uses PostgreSQL 17",
+            "atlas",
+            memory_domain::SourceKind::Agent,
+            0.4,
+        );
 
         let analysis = policy.analyze(&incoming, &existing, false, true);
         assert_eq!(analysis.kind, ConflictKind::ReviewRequired);
@@ -266,8 +312,18 @@ mod tests {
     fn ambiguous_ambiguity_defers_to_authority_then_confidence() {
         let policy = ResolutionPolicy;
 
-        let strong_user_old = fact("Atlas deploys to us-east", "atlas", memory_domain::SourceKind::User, 0.5);
-        let weak_agent_new = fact("Atlas deploys to eu-west these days", "atlas", memory_domain::SourceKind::Agent, 0.9);
+        let strong_user_old = fact(
+            "Atlas deploys to us-east",
+            "atlas",
+            memory_domain::SourceKind::User,
+            0.5,
+        );
+        let weak_agent_new = fact(
+            "Atlas deploys to eu-west these days",
+            "atlas",
+            memory_domain::SourceKind::Agent,
+            0.9,
+        );
         let a = policy.analyze(&weak_agent_new, &strong_user_old, false, false);
         assert_eq!(a.kind, ConflictKind::Ambiguous);
         assert_eq!(
@@ -276,12 +332,24 @@ mod tests {
             "agent confidence cannot outrank user authority"
         );
 
-        let user_a = fact("Atlas deploys to us-east", "atlas", memory_domain::SourceKind::User, 0.4);
-        let user_b = fact("Atlas deploys to eu-west now", "atlas", memory_domain::SourceKind::User, 0.8);
+        let user_a = fact(
+            "Atlas deploys to us-east",
+            "atlas",
+            memory_domain::SourceKind::User,
+            0.4,
+        );
+        let user_b = fact(
+            "Atlas deploys to eu-west now",
+            "atlas",
+            memory_domain::SourceKind::User,
+            0.8,
+        );
         let b = policy.analyze(&user_b, &user_a, false, false);
         assert_eq!(
             policy.resolve(&b, &user_b, &user_a),
-            SupersessionOutcome::ReplaceExisting { closing_id: user_a.id },
+            SupersessionOutcome::ReplaceExisting {
+                closing_id: user_a.id
+            },
             "equal authority: higher confidence wins"
         );
     }
@@ -293,7 +361,9 @@ mod tests {
         ResolutionPolicy::close_window(&mut r).expect("close");
 
         // History query path still finds it via include_history mode.
-        assert!(r.status.is_retired() && !r.status.is_retrievable()
-            || matches!(r.status, memory_domain::MemoryStatus::Superseded));
+        assert!(
+            r.status.is_retired() && !r.status.is_retrievable()
+                || matches!(r.status, memory_domain::MemoryStatus::Superseded)
+        );
     }
 }
