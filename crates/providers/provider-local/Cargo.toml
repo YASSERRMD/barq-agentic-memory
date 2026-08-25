@@ -1,6 +1,6 @@
 [package]
-name = "memory-core"
-description = "Provider registry and engine assembly for the Barq memory engine."
+name = "provider-local"
+description = "Embedded providers for the Barq memory engine: in-memory store, redb-backed persistent store, and in-process working memory."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,11 +10,13 @@ rust-version.workspace = true
 [dependencies]
 memory-domain.workspace = true
 memory-provider-api.workspace = true
-provider-local.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+redb = "4"
 
 [dev-dependencies]
 tokio.workspace = true

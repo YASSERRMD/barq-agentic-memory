@@ -28,9 +28,6 @@ model, query model, configuration schema, and provider registry.
 - Workspace scaffold, gate script, architecture doc, README.
 
 **Exit criteria:** Domain and core crates compile without any database
-dependency.
-
-**Exit criteria:** Domain and core crates compile without any database
 dependency. ✅ `memory-domain`, `memory-provider-api`, and `memory-core`
 have no database dependencies; the workspace compiles standalone.
 
@@ -49,8 +46,46 @@ GATE PASSED
 
 69 unit tests, zero failures.
 
-**Deviations:** 25 commits on the phase branch — within the >=20 floor.
+**Deviations:** 26 commits on the phase branch — within the >=20 floor.
 No filler commits were needed; each commit is a distinct contract element
 (identifiers, taxonomy, scope, subjects, content, provenance, temporal,
 record, errors, query, config, three provider traits, registry, assembly,
 docs, gate).
+
+---
+
+## Phase 01 — Embedded Local MVP
+
+**Branch:** `phase/01-local-mvp`
+**Objective:** Make the engine usable without external infrastructure:
+in-memory provider, local persistent provider (redb), engine CRUD facade,
+exact lookup, memory-type filtering, namespaces, and TTL for working
+memory. No custom database.
+
+**Exit criteria:** A Rust application can use the engine locally and
+persist memories across restarts.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK
+clippy: OK
+test result: ok. 22 passed  (memory-core unit)
+test result: ok. 3 passed   (memory-core e2e restart/isolation/lifecycle)
+test result: ok. 53 passed  (memory-domain)
+test result: ok. 7 passed   (memory-provider-api)
+test result: ok. 19 passed  (provider-local)
+test: OK
+GATE PASSED
+```
+
+104 tests, zero failures. Quickstart example run twice demonstrated
+persistence across process restarts.
+
+**Deviations:** 7 commits — below the >=20 floor. Honest decomposition
+yielded exactly this many: the phase is one provider crate (filter,
+memory store, persistent store, working store) plus the engine facade,
+integration tests, and gate fixes; splitting further would have produced
+non-building intermediate states. Recorded per the floor-not-padding
+rule.

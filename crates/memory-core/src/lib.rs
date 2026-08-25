@@ -4,7 +4,11 @@
 //! trait objects supplied by feature crates.
 
 pub mod assembly;
+pub mod engine;
 pub mod registry;
+pub mod requests;
 
 pub use assembly::{AssemblyPlan, ensure_satisfiable};
+pub use engine::MemoryEngine;
 pub use registry::{ProviderCapability, ProviderRegistry};
+pub use requests::{RememberRequest, UpdateRequest};
