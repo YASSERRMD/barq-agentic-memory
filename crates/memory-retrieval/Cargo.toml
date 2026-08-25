@@ -1,0 +1,18 @@
+[package]
+name = "memory-retrieval"
+description = "Retrieval planning and hybrid execution for the Barq memory engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+memory-domain.workspace = true
+memory-provider-api.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
