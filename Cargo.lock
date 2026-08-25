@@ -765,6 +765,7 @@ dependencies = [
  "memory-domain",
  "memory-provider-api",
  "provider-local",
+ "provider-pgvector",
  "provider-postgres",
  "provider-redis",
  "serde",
