@@ -5,7 +5,9 @@
 //! configuration) that the engine boundary is frozen around.
 
 pub mod id;
+pub mod scope;
 pub mod taxonomy;
 
 pub use id::MemoryId;
+pub use scope::MemoryScope;
 pub use taxonomy::{MemoryStatus, MemoryType};
