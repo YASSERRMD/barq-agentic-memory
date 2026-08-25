@@ -54,7 +54,11 @@ impl MemoryEngine {
             }
         };
 
-        Ok(Self { config, store, working })
+        Ok(Self {
+            config,
+            store,
+            working,
+        })
     }
 
     /// Configuration the engine was assembled with.
@@ -93,7 +97,10 @@ impl MemoryEngine {
             // Batch ceiling doubles as a sane result budget for MVP.
             return Err(MemoryError::validation(
                 "limit",
-                format!("exceeds engine max_batch_size ({})", self.config.limits.max_batch_size),
+                format!(
+                    "exceeds engine max_batch_size ({})",
+                    self.config.limits.max_batch_size
+                ),
             ));
         }
         self.store.query(&query).await
@@ -107,11 +114,13 @@ impl MemoryEngine {
         if request.content.is_empty() {
             return Err(MemoryError::validation("content", "must not be empty"));
         }
-        let existing = self
-            .store
-            .get(&request.id, &request.scope)
-            .await?
-            .ok_or(MemoryError::NotFound { memory_id: request.id })?;
+        let existing =
+            self.store
+                .get(&request.id, &request.scope)
+                .await?
+                .ok_or(MemoryError::NotFound {
+                    memory_id: request.id,
+                })?;
 
         let mut successor = existing.derive_successor(request.content);
         successor.scope = existing.scope.clone();
@@ -182,7 +191,9 @@ impl MemoryEngine {
         data: serde_json::Value,
     ) -> MemoryResult<()> {
         let state = WorkingMemoryState::initial(session_id, data);
-        self.working.set(&state, self.config.working_memory_ttl).await
+        self.working
+            .set(&state, self.config.working_memory_ttl)
+            .await
     }
 
     /// Writes session state with an explicit TTL.
@@ -242,27 +253,46 @@ mod tests {
     async fn update_creates_supersession_chain() {
         let engine = embedded();
         let v1 = engine
-            .remember(RememberRequest::new(MemoryType::Semantic, "Atlas uses MySQL"))
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "Atlas uses MySQL",
+            ))
             .await
             .expect("remember");
 
         let v2 = engine
-            .update(UpdateRequest::content(v1.id, MemoryScope::default(), "Atlas uses PostgreSQL"))
+            .update(UpdateRequest::content(
+                v1.id,
+                MemoryScope::default(),
+                "Atlas uses PostgreSQL",
+            ))
             .await
             .expect("update");
 
         assert_eq!(v2.supersedes, Some(v1.id));
 
-        let retired = engine.recall_exact(v1.id, &MemoryScope::default()).await.expect("get");
-        assert_eq!(retired.unwrap().status, memory_domain::MemoryStatus::Superseded);
+        let retired = engine
+            .recall_exact(v1.id, &MemoryScope::default())
+            .await
+            .expect("get");
+        assert_eq!(
+            retired.unwrap().status,
+            memory_domain::MemoryStatus::Superseded
+        );
 
-        let chain = engine.history(v2.id, &MemoryScope::default()).await.expect("history");
+        let chain = engine
+            .history(v2.id, &MemoryScope::default())
+            .await
+            .expect("history");
         assert_eq!(chain.len(), 2);
         assert_eq!(chain[0].content.text, "Atlas uses MySQL");
         assert_eq!(chain[1].content.text, "Atlas uses PostgreSQL");
 
         // Default search hides retired facts but history keeps them.
-        let hits = engine.search(MemoryQuery::default().with_text("MySQL")).await.expect("search");
+        let hits = engine
+            .search(MemoryQuery::default().with_text("MySQL"))
+            .await
+            .expect("search");
         assert!(hits.is_empty());
     }
 
@@ -274,11 +304,25 @@ mod tests {
             .await
             .expect("remember");
 
-        assert!(engine.forget(r.id, &MemoryScope::default()).await.expect("forget"));
-        let gone = engine.recall_exact(r.id, &MemoryScope::default()).await.expect("get").unwrap();
+        assert!(
+            engine
+                .forget(r.id, &MemoryScope::default())
+                .await
+                .expect("forget")
+        );
+        let gone = engine
+            .recall_exact(r.id, &MemoryScope::default())
+            .await
+            .expect("get")
+            .unwrap();
         assert_eq!(gone.status, memory_domain::MemoryStatus::Deleted);
 
-        assert!(!engine.forget(r.id, &MemoryScope::default()).await.expect("forget again"));
+        assert!(
+            !engine
+                .forget(r.id, &MemoryScope::default())
+                .await
+                .expect("forget again")
+        );
     }
 
     #[tokio::test]
@@ -288,7 +332,10 @@ mod tests {
             .remember(RememberRequest::new(MemoryType::Working, "scratch"))
             .await
             .expect("remember");
-        engine.purge(r.id, &MemoryScope::default()).await.expect("purge");
+        engine
+            .purge(r.id, &MemoryScope::default())
+            .await
+            .expect("purge");
         assert!(
             engine
                 .recall_exact(r.id, &MemoryScope::default())
@@ -305,7 +352,9 @@ mod tests {
         let globex = MemoryScopeBuilder::new().tenant("globex").build();
 
         let r = engine
-            .remember(RememberRequest::new(MemoryType::Semantic, "acme secret").with_scope(acme.clone()))
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "acme secret").with_scope(acme.clone()),
+            )
             .await
             .expect("remember");
 
@@ -327,8 +376,10 @@ mod tests {
 
     #[tokio::test]
     async fn working_state_expires_by_default_ttl() {
-        let mut config = EngineConfig::default();
-        config.working_memory_ttl = Duration::from_millis(30);
+        let config = EngineConfig {
+            working_memory_ttl: Duration::from_millis(30),
+            ..EngineConfig::default()
+        };
         let engine = MemoryEngine::from_config(config).expect("engine");
 
         engine

@@ -93,7 +93,7 @@ impl MemoryStoreProvider for InMemoryStore {
             .cloned()
             .collect();
         // Newest first gives callers a stable, useful default order.
-        hits.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        hits.sort_by_key(|r| std::cmp::Reverse(r.created_at));
         hits.truncate(query.limit as usize);
         Ok(hits)
     }

@@ -201,9 +201,8 @@ impl MemoryStoreProvider for LocalStore {
     }
 
     async fn delete(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<()> {
-        match self.get(id, scope).await? {
-            None => return Ok(()), // invisible or absent => already gone
-            Some(_) => {}
+        if self.get(id, scope).await?.is_none() {
+            return Ok(()); // invisible or absent => already gone
         }
         let key = format!("{}{}", self.namespaced(), Self::key(id));
         let db = self.database.clone();
@@ -259,7 +258,7 @@ impl MemoryStoreProvider for LocalStore {
             hits.push(Self::decode(bytes)?);
         }
         hits.retain(|r| matches_query(r, &query));
-        hits.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        hits.sort_by_key(|r| std::cmp::Reverse(r.created_at));
         hits.truncate(query.limit as usize);
         Ok(hits)
     }

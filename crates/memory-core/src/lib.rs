@@ -8,7 +8,7 @@ pub mod engine;
 pub mod registry;
 pub mod requests;
 
-pub use assembly::{ensure_satisfiable, AssemblyPlan};
+pub use assembly::{AssemblyPlan, ensure_satisfiable};
 pub use engine::MemoryEngine;
 pub use registry::{ProviderCapability, ProviderRegistry};
 pub use requests::{RememberRequest, UpdateRequest};

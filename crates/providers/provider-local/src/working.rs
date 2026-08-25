@@ -111,7 +111,10 @@ mod tests {
         let store = InProcessWorkingStore::new("ns");
 
         let state = WorkingMemoryState::initial("s-1", json!({"goal": "book flight"}));
-        store.set(&state, Duration::from_secs(60)).await.expect("set");
+        store
+            .set(&state, Duration::from_secs(60))
+            .await
+            .expect("set");
 
         let got = store.get("s-1").await.expect("get").expect("live");
         assert_eq!(got.data["goal"], "book flight");
@@ -152,8 +155,14 @@ mod tests {
         let store = InProcessWorkingStore::new("ns");
         let dead = WorkingMemoryState::initial("dead", json!({}));
         let alive = WorkingMemoryState::initial("alive", json!({}));
-        store.set(&dead, Duration::from_millis(10)).await.expect("set");
-        store.set(&alive, Duration::from_secs(60)).await.expect("set");
+        store
+            .set(&dead, Duration::from_millis(10))
+            .await
+            .expect("set");
+        store
+            .set(&alive, Duration::from_secs(60))
+            .await
+            .expect("set");
 
         tokio::time::sleep(Duration::from_millis(30)).await;
         let removed = store.sweep_expired();

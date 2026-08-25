@@ -36,7 +36,7 @@ async fn main() {
 
     // update() — creates a successor, history preserved
     let updated = engine
-        .update(memory_core::UpdateRequest::content(
+        .update(UpdateRequest::content(
             fact.id,
             Default::default(),
             "Customer prefers SMS contact",
@@ -46,12 +46,19 @@ async fn main() {
     println!("updated -> {}", updated.id);
 
     // history()
-    let chain = engine.history(updated.id, &Default::default()).await.unwrap();
+    let chain = engine
+        .history(updated.id, &Default::default())
+        .await
+        .unwrap();
     println!("history chain: {} generation(s)", chain.len());
 
     // forget() + working state
     engine.forget(fact.id, &Default::default()).await.unwrap();
-    engine.set_working_state("demo-session", serde_json::json!({ "goal": "finish phase 1" }))
+    engine
+        .set_working_state(
+            "demo-session",
+            serde_json::json!({ "goal": "finish phase 1" }),
+        )
         .await
         .unwrap();
     let working = engine.working_state("demo-session").await.unwrap();

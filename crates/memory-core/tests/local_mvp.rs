@@ -3,7 +3,7 @@
 
 use memory_core::{MemoryEngine, RememberRequest, UpdateRequest};
 use memory_domain::{
-    config::StoreConfig, EngineConfig, MemoryQuery, MemoryScope, MemoryScopeBuilder, MemoryType,
+    EngineConfig, MemoryQuery, MemoryScope, MemoryScopeBuilder, MemoryType, config::StoreConfig,
 };
 use std::path::PathBuf;
 
@@ -73,10 +73,10 @@ async fn namespaces_partition_one_file_between_tenants() {
     }
 
     let path_a = dir.join("shared.redb");
-    let tenant_a = MemoryEngine::from_config(config_for("tenant-a", path_a.clone()))
-        .expect("engine a");
-    let tenant_b = MemoryEngine::from_config(config_for("tenant-b", path_a))
-        .expect("engine b (same file)");
+    let tenant_a =
+        MemoryEngine::from_config(config_for("tenant-a", path_a.clone())).expect("engine a");
+    let tenant_b =
+        MemoryEngine::from_config(config_for("tenant-b", path_a)).expect("engine b (same file)");
 
     tenant_a
         .remember(RememberRequest::new(MemoryType::Semantic, "a-only fact"))
@@ -115,7 +115,10 @@ async fn full_lifecycle_flow_over_local_store() {
     let engine = MemoryEngine::from_config(config).expect("engine");
 
     let v1 = engine
-        .remember(RememberRequest::new(MemoryType::Semantic, "Atlas uses MySQL"))
+        .remember(RememberRequest::new(
+            MemoryType::Semantic,
+            "Atlas uses MySQL",
+        ))
         .await
         .expect("remember");
     let v2 = engine
@@ -127,10 +130,18 @@ async fn full_lifecycle_flow_over_local_store() {
         .await
         .expect("update");
 
-    let chain = engine.history(v2.id, &MemoryScope::default()).await.expect("history");
+    let chain = engine
+        .history(v2.id, &MemoryScope::default())
+        .await
+        .expect("history");
     assert_eq!(chain.len(), 2);
 
-    assert!(engine.forget(v2.id, &MemoryScope::default()).await.expect("forget"));
+    assert!(
+        engine
+            .forget(v2.id, &MemoryScope::default())
+            .await
+            .expect("forget")
+    );
     assert!(
         engine
             .search(MemoryQuery::default())

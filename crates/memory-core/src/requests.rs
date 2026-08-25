@@ -114,12 +114,11 @@ impl RememberRequest {
     }
 
     pub(crate) fn into_record(self, default_scope: MemoryScope) -> MemoryRecord {
-        let mut record =
-            MemoryRecord::new(self.memory_type, self.content)
-                .with_scope(self.scope.unwrap_or(default_scope))
-                .with_confidence(self.confidence)
-                .with_importance(self.importance)
-                .with_retention(self.retention);
+        let mut record = MemoryRecord::new(self.memory_type, self.content)
+            .with_scope(self.scope.unwrap_or(default_scope))
+            .with_confidence(self.confidence)
+            .with_importance(self.importance)
+            .with_retention(self.retention);
         record.subtype = self.subtype;
         record.subject = self.subject;
         let mut provenance = Provenance::now(self.source);
@@ -191,7 +190,13 @@ mod tests {
         config.limits.max_content_chars = 8;
         let req = RememberRequest::new(MemoryType::Semantic, "this is far too long");
         let err = req.validated(&config).unwrap_err();
-        assert!(matches!(err, MemoryError::Validation { field: "content", .. }));
+        assert!(matches!(
+            err,
+            MemoryError::Validation {
+                field: "content",
+                ..
+            }
+        ));
     }
 
     #[test]
