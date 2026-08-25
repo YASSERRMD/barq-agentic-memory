@@ -89,3 +89,22 @@ memory store, persistent store, working store) plus the engine facade,
 integration tests, and gate fixes; splitting further would have produced
 non-building intermediate states. Recorded per the floor-not-padding
 rule.
+
+---
+
+## Phase 02 — PostgreSQL Canonical Store
+
+**Branch:** `phase/02-postgres-store`
+**Objective:** Production-grade authoritative persistence: SQLx provider,
+migrations, version history, provenance, temporal validity, soft delete,
+retention metadata, optimistic concurrency. Indexes cover tenant,
+workspace, user, agent, memory type, subject, status, validity, and
+creation time.
+
+**Exit criteria:** PostgreSQL becomes the source of truth for long-term
+memory.
+
+**Gate output:** _recorded at phase close_
+
+**Live-PG verification:** _recorded at phase close_ (integration tests
+are opt-in via `BARQ_TEST_PG_URL` so the shared gate stays hermetic)
