@@ -10,4 +10,6 @@ pub mod working;
 
 pub use store::MemoryStoreProvider;
 pub use vector::{VectorMatch, VectorProvider, VectorQuery, VectorRecord};
-pub use working::{WorkingMemoryProvider, WorkingMemoryState};
+pub use working::{
+    SessionSnapshot, WorkingMemoryProvider, WorkingMemoryState,
+};

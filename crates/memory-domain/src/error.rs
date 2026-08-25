@@ -40,6 +40,26 @@ pub enum MemoryError {
         actual: u64,
     },
 
+    /// Concurrent session-state writers diverged; retry with fresh state.
+    #[error(
+        "concurrent modification of session '{session_id}': expected revision {expected}, found {actual}"
+    )]
+    SessionConflict {
+        /// Session whose state changed underneath us.
+        session_id: String,
+        /// Revision the caller assumed.
+        expected: u64,
+        /// Revision actually stored.
+        actual: u64,
+    },
+
+    /// Session state referenced by an operation does not exist.
+    #[error("session '{session_id}' not found")]
+    SessionNotFound {
+        /// Missing session identifier.
+        session_id: String,
+    },
+
     /// A configured provider backend is not reachable or healthy.
     #[error("provider '{provider}' unavailable: {message}")]
     ProviderUnavailable {
@@ -100,7 +120,9 @@ impl MemoryError {
     pub fn is_retryable(&self) -> bool {
         matches!(
             self,
-            MemoryError::ProviderUnavailable { .. } | MemoryError::VersionConflict { .. }
+            MemoryError::ProviderUnavailable { .. }
+                | MemoryError::VersionConflict { .. }
+                | MemoryError::SessionConflict { .. }
         )
     }
 }
