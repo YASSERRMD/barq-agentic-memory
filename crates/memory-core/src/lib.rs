@@ -8,6 +8,7 @@ pub mod engine;
 pub mod episodes;
 pub mod planning;
 pub mod procedures;
+pub mod prospective;
 pub mod registry;
 pub mod requests;
 
