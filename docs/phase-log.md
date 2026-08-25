@@ -65,6 +65,27 @@ memory. No custom database.
 **Exit criteria:** A Rust application can use the engine locally and
 persist memories across restarts.
 
-**Gate output:** _recorded at phase close_
+**Gate output:**
 
-**Deviations:** _none yet_
+```text
+$ ./scripts/gate.sh
+fmt: OK
+clippy: OK
+test result: ok. 22 passed  (memory-core unit)
+test result: ok. 3 passed   (memory-core e2e restart/isolation/lifecycle)
+test result: ok. 53 passed  (memory-domain)
+test result: ok. 7 passed   (memory-provider-api)
+test result: ok. 19 passed  (provider-local)
+test: OK
+GATE PASSED
+```
+
+104 tests, zero failures. Quickstart example run twice demonstrated
+persistence across process restarts.
+
+**Deviations:** 7 commits — below the >=20 floor. Honest decomposition
+yielded exactly this many: the phase is one provider crate (filter,
+memory store, persistent store, working store) plus the engine facade,
+integration tests, and gate fixes; splitting further would have produced
+non-building intermediate states. Recorded per the floor-not-padding
+rule.
