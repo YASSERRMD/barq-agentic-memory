@@ -29,6 +29,9 @@ pub struct EngineConfig {
     pub store: StoreConfig,
     /// Vector index selection; absent disables semantic recall.
     pub vector: Option<VectorStoreConfig>,
+    /// Embedding model selection; required whenever a vector backend is
+    /// configured.
+    pub embedding: Option<EmbeddingConfig>,
     /// Working-state store selection; defaults to the in-process store.
     pub working: Option<WorkingStoreConfig>,
     /// Engine limits.
@@ -43,6 +46,7 @@ impl Default for EngineConfig {
             working_memory_ttl: DEFAULT_WORKING_MEMORY_TTL,
             store: StoreConfig::Memory,
             vector: None,
+            embedding: None,
             working: None,
             limits: LimitsConfig::default(),
         }
@@ -68,6 +72,16 @@ impl EngineConfig {
         self.store.validate()?;
         if let Some(v) = &self.vector {
             v.validate()?;
+            // Semantic recall needs an embedder; refuse half a setup.
+            if self.embedding.is_none() {
+                return Err(MemoryError::validation(
+                    "embedding",
+                    "required when a vector backend is configured",
+                ));
+            }
+        }
+        if let Some(e) = &self.embedding {
+            e.validate()?;
         }
         if let Some(w) = &self.working {
             w.validate()?;
@@ -152,6 +166,33 @@ impl VectorStoreConfig {
                 Ok(())
             }
             VectorStoreConfig::InMemory => Ok(()),
+        }
+    }
+}
+
+/// Embedding model backends.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "backend", rename_all = "snake_case")]
+pub enum EmbeddingConfig {
+    /// Deterministic feature-hashing embedder: zero network, zero LLM.
+    Hashing {
+        /// Fixed dimensionality; must match the vector index.
+        dimensions: u32,
+    },
+}
+
+impl EmbeddingConfig {
+    fn validate(&self) -> MemoryResult<()> {
+        match self {
+            EmbeddingConfig::Hashing { dimensions } => {
+                if *dimensions == 0 || *dimensions > 10_000 {
+                    return Err(MemoryError::validation(
+                        "embedding.dimensions",
+                        "must be in 1..=10000",
+                    ));
+                }
+                Ok(())
+            }
         }
     }
 }
