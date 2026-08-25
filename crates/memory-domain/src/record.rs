@@ -235,6 +235,13 @@ mod tests {
         let json = serde_json::to_string(&r).expect("serialize");
         let back: MemoryRecord = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(back, r);
-        assert!(!json.contains("\"scope\":"), "empty scope omitted");
+        assert!(json.contains("\"scope\":"), "pinned scope serialized");
+
+        let bare = MemoryRecord::new(MemoryType::Working, MemoryContent::from_text("hi"));
+        let bare_json = serde_json::to_string(&bare).expect("serialize");
+        assert!(
+            !bare_json.contains("\"scope\":"),
+            "empty scope omitted to keep payloads small"
+        );
     }
 }
