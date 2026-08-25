@@ -147,3 +147,21 @@ WHERE clause compared the wrong version (found by the live test before
 first commit). Provider-level delete is physical; soft-delete semantics
 live at engine level via forget() tombstones, with the append-only
 memory_versions ledger preserving revisions.
+
+---
+
+## Phase 03 — Redis Working Memory
+
+**Branch:** `phase/03-redis-working-memory`
+**Objective:** Very fast active/session state: current session state,
+active goals, recent observations, tool results, TTL, checkpoint
+references, version-safe updates. Working memory never graduates to
+long-term automatically.
+
+**Exit criteria:** Session state survives concurrent tool-call writers
+without lost updates; expiry is enforced by the backend.
+
+**Gate output:** _recorded at phase close_
+
+**Live-Redis verification:** _recorded at phase close_ (opt-in tests vs
+a throwaway `redis:7-alpine` container on port 6399)
