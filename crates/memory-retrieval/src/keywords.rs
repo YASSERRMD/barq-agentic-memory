@@ -9,15 +9,18 @@
 /// since canonical stores match case-insensitively.
 pub fn extract(text: &str) -> Vec<String> {
     text.split_whitespace()
-        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_lowercase())
+        .map(|w| {
+            w.trim_matches(|c: char| !c.is_alphanumeric())
+                .to_lowercase()
+        })
         .filter(|w| !w.is_empty() && w.len() > 2 && !STOPWORDS.contains(&w.as_str()))
         .collect()
 }
 
 const STOPWORDS: &[&str] = &[
-    "the", "and", "for", "with", "that", "this", "from", "what", "when",
-    "where", "which", "who", "how", "does", "did", "are", "was", "were",
-    "has", "have", "had", "you", "your", "our", "their",
+    "the", "and", "for", "with", "that", "this", "from", "what", "when", "where", "which", "who",
+    "how", "does", "did", "are", "was", "were", "has", "have", "had", "you", "your", "our",
+    "their",
 ];
 
 #[cfg(test)]
