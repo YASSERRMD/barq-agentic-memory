@@ -5,6 +5,7 @@
 
 pub mod assembly;
 pub mod engine;
+pub mod planning;
 pub mod registry;
 pub mod requests;
 

@@ -8,6 +8,6 @@ pub mod plan;
 pub mod planner;
 pub mod request;
 
-pub use plan::{LookupKind, RetrievalPlan, RetrievalStep};
+pub use plan::{LookupKind, ProviderKind, RetrievalPlan, RetrievalStep};
 pub use planner::RuleBasedPlanner;
-pub use request::RecallRequest;
+pub use request::{RecallMode, RecallRequest};
