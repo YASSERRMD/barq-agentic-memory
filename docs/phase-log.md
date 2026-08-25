@@ -283,3 +283,34 @@ fully covered by deterministic unit tests.
 **Deviations:** 6 commits — the phase is a single cohesive crate
 (request/plan model, rule-based planner, keyword module, engine hook);
 recorded honestly against the >=20 floor.
+
+---
+
+## Phase 06 — Hybrid Retrieval
+
+**Branch:** `phase/06-hybrid-retrieval`
+**Objective:** Combine exact match, keyword, vector similarity, entity
+match, temporal relevance, recency, importance, confidence, and source
+authority. Pipeline: parallel retrieval -> merge candidates -> scope
+filter -> remove superseded -> score -> rerank -> return.
+
+**Exit criteria:** A single recall() call on the engine executes the full
+plan and returns deterministically ranked, canonically-hydrated results.
+
+**Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (157 hermetic tests across 8 crates)
+```
+
+**Live verification:** none required — executor logic fully covered by
+deterministic unit and engine-level integration tests (hybrid ranking,
+supersession precedence, end-to-end scope isolation).
+
+**Deviations:** 4 commits vs floor 20; the phase is one cohesive
+pipeline (scoring module, executor module, engine wiring) where further
+splitting would break per-commit compilability. Recorded honestly.

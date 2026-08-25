@@ -26,11 +26,11 @@ use std::time::Duration;
 /// graph, and episodic providers attach in later phases without
 /// changing these method signatures.
 pub struct MemoryEngine {
-    config: EngineConfig,
-    store: Arc<dyn MemoryStoreProvider>,
-    working: Arc<dyn WorkingMemoryProvider>,
-    vector: Option<Arc<dyn VectorProvider>>,
-    embedder: Option<Arc<dyn EmbeddingProvider>>,
+    pub(crate) config: EngineConfig,
+    pub(crate) store: Arc<dyn MemoryStoreProvider>,
+    pub(crate) working: Arc<dyn WorkingMemoryProvider>,
+    pub(crate) vector: Option<Arc<dyn VectorProvider>>,
+    pub(crate) embedder: Option<Arc<dyn EmbeddingProvider>>,
 }
 
 /// A canonical record returned with its similarity score.
