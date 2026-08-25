@@ -33,6 +33,7 @@ pub struct MemoryEngine {
     pub(crate) embedder: Option<Arc<dyn EmbeddingProvider>>,
     pub(crate) classifier: Option<Arc<dyn memory_classifier::MemoryClassifier>>,
     pub(crate) episodes: Option<std::sync::Arc<dyn memory_episodic::EpisodeStore>>,
+    pub(crate) graph: Option<std::sync::Arc<dyn memory_graph::GraphProvider>>,
 }
 
 /// A canonical record returned with its similarity score.
@@ -125,7 +126,14 @@ impl MemoryEngine {
             embedder,
             classifier: None,
             episodes: None,
+            graph: None,
         })
+    }
+
+    /// Attaches an entity graph fed by relation extraction on writes.
+    pub fn with_graph(mut self, graph: std::sync::Arc<dyn memory_graph::GraphProvider>) -> Self {
+        self.graph = Some(graph);
+        self
     }
 
     /// Attaches an episode store for experience tracking.
@@ -241,7 +249,27 @@ impl MemoryEngine {
 
         let saved = self.store.put(&record).await?;
         self.index_vector(&saved).await?;
+        self.index_graph(&saved).await?;
         Ok(saved)
+    }
+
+    /// Extracts and stores entity relations justified by a memory.
+    async fn index_graph(&self, record: &MemoryRecord) -> MemoryResult<()> {
+        let Some(graph) = &self.graph else {
+            return Ok(());
+        };
+        let Some(subject) = &record.subject else {
+            return Ok(());
+        };
+        use memory_graph::RelationExtractor as _;
+        let extractor = memory_graph::RuleBasedRelationExtractor;
+        let relations = extractor
+            .extract(record.id, subject, &record.content.text)
+            .await?;
+        for relation in relations {
+            graph.add_relation(&relation).await?;
+        }
+        Ok(())
     }
 
     /// Runs the dedup cascade against same-type candidates in scope.
@@ -557,6 +585,9 @@ impl MemoryEngine {
         record.updated_at = chrono::Utc::now();
         self.store.update(&record).await?;
         self.remove_vector(&id).await?;
+        if let Some(graph) = &self.graph {
+            graph.remove_evidence(&id).await?;
+        }
         Ok(true)
     }
 
@@ -564,7 +595,11 @@ impl MemoryEngine {
     /// compliance erasure, which is what this exists for.
     pub async fn purge(&self, id: MemoryId, scope: &MemoryScope) -> MemoryResult<()> {
         self.store.delete(&id, scope).await?;
-        self.remove_vector(&id).await
+        self.remove_vector(&id).await?;
+        if let Some(graph) = &self.graph {
+            graph.remove_evidence(&id).await?;
+        }
+        Ok(())
     }
 
     /// The supersession chain ending at `id`, oldest first.
@@ -1333,5 +1368,69 @@ mod conflict_tests {
             .unwrap()
             .unwrap();
         assert_eq!(b_status.status, memory_domain::MemoryStatus::Active);
+    }
+}
+
+#[cfg(test)]
+mod graph_tests {
+    use super::*;
+    use memory_domain::{MemorySubject, MemoryType};
+    use memory_graph::{Entity, EntityKey, GraphProvider};
+
+    async fn embedded() -> MemoryEngine {
+        MemoryEngine::from_config(EngineConfig::default())
+            .await
+            .expect("engine")
+    }
+
+    #[tokio::test]
+    async fn remember_feeds_graph_and_forget_retracts_edges() {
+        let graph = std::sync::Arc::new(memory_graph::InMemoryGraphStore::new());
+        let engine = embedded().await.with_graph(graph.clone());
+
+        let saved = engine
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "Project Atlas uses PostgreSQL")
+                    .with_subject(MemorySubject::new("atlas").with_type("project")),
+            )
+            .await
+            .expect("remember");
+
+        let atlas_key = EntityKey::from_subject(&MemorySubject::new("atlas").with_type("project"));
+        let edges = graph.relations_from(&atlas_key).await.expect("edges");
+        assert_eq!(edges.len(), 1);
+        assert_eq!(edges[0].relation_type, "USES");
+        assert_eq!(edges[0].evidence, saved.id);
+
+        // Forgetting the evidence retracts its edges.
+        engine
+            .forget(saved.id, &Default::default())
+            .await
+            .expect("forget");
+        assert_eq!(graph.edge_count(), 0);
+    }
+
+    #[tokio::test]
+    async fn subjectless_memories_do_not_touch_the_graph() {
+        let graph = std::sync::Arc::new(memory_graph::InMemoryGraphStore::new());
+        let engine = embedded().await.with_graph(graph.clone());
+
+        engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "unanchored note that mentions uses nothing",
+            ))
+            .await
+            .expect("remember");
+
+        // Entities may be upserted directly; edges require evidence.
+        graph
+            .upsert_entity(&Entity {
+                key: EntityKey::new(None, "solo"),
+                display_name: "Solo".into(),
+            })
+            .await
+            .expect("upsert");
+        assert_eq!(graph.edge_count(), 0);
     }
 }
