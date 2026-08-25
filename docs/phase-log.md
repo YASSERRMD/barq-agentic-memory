@@ -30,6 +30,27 @@ model, query model, configuration schema, and provider registry.
 **Exit criteria:** Domain and core crates compile without any database
 dependency.
 
-**Gate output:** _recorded at phase close_
+**Exit criteria:** Domain and core crates compile without any database
+dependency. ✅ `memory-domain`, `memory-provider-api`, and `memory-core`
+have no database dependencies; the workspace compiles standalone.
 
-**Deviations:** _none yet_
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK
+clippy: OK
+test result: ok. 9 passed   (memory-core)
+test result: ok. 53 passed  (memory-domain)
+test result: ok. 7 passed   (memory-provider-api)
+test: OK
+GATE PASSED
+```
+
+69 unit tests, zero failures.
+
+**Deviations:** 25 commits on the phase branch — within the >=20 floor.
+No filler commits were needed; each commit is a distinct contract element
+(identifiers, taxonomy, scope, subjects, content, provenance, temporal,
+record, errors, query, config, three provider traits, registry, assembly,
+docs, gate).
