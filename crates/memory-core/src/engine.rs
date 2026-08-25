@@ -202,7 +202,7 @@ impl MemoryEngine {
     /// Synchronous on the write path for now; background indexing
     /// arrives with the scale-out phase. Failures propagate: a record
     /// that cannot be indexed must not pretend to be recallable.
-    async fn index_vector(&self, record: &MemoryRecord) -> MemoryResult<()> {
+    pub(crate) async fn index_vector(&self, record: &MemoryRecord) -> MemoryResult<()> {
         let (Some(vector), Some(embedder)) = (&self.vector, &self.embedder) else {
             return Ok(());
         };

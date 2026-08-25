@@ -454,3 +454,29 @@ GATE PASSED  (212 hermetic tests across 13 crates)
 **Deviations:** 3 commits vs floor 20. Neo4j adapter intentionally
 deferred: the trait is the contract and no Neo4j instance exists in the
 gate environment; recorded honestly.
+
+---
+
+## Phase 12 — Procedural Memory
+
+**Branch:** `phase/12-procedural-memory`
+**Objective:** Procedure content, version, owner, approval state,
+compatibility, source, effective dates, deprecation. States DRAFT /
+REVIEW / APPROVED / ACTIVE / DEPRECATED / REVOKED. The engine retrieves
+procedures; it never executes them.
+
+**Exit criteria:** Met — governed lifecycles with validated transitions
+(illegal edges rejected by name), revision bumps per governance change,
+and retrieval restricted to ACTIVE + currently-effective documents.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (219 hermetic tests across 14 crates)
+```
+
+**Deviations:** 2 commits vs floor 20; single cohesive module. The
+lifecycle rides canonical records via structured payloads, so no new
+storage provider is needed. Recorded honestly.

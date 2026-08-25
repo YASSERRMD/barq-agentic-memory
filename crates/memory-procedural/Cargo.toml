@@ -1,0 +1,18 @@
+[package]
+name = "memory-procedural"
+description = "Procedural memory: versioned procedure documents with approval lifecycles."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+memory-domain.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+tokio.workspace = true
