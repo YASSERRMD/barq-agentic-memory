@@ -253,3 +253,18 @@ Test pollution from repeated runs was isolated via per-run namespaces.
 
 **Deviations:** none material; commits landed as cohesive units per
 crate rather than padding to the >=20 floor (recorded honestly).
+## Phase 05 — Retrieval Planner
+
+**Branch:** `phase/05-retrieval-planner`
+**Objective:** Stop treating every recall as a vector query. Build a
+rule-based planner that determines memory type, scope, time range,
+provider, exact-vs-semantic strategy, graph requirement, and result
+budget — producing an ordered plan the executor (phase 6) can run.
+No LLM dependency: rules are transparent and testable.
+
+**Exit criteria:** A recall request compiles into a deterministic,
+inspectable plan whose steps reflect caller hints and keyword evidence
+(e.g. subject-pinned factual questions try exact structured lookup
+before vector fallback).
+
+**Gate output:** _recorded at phase close_
