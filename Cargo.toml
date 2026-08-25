@@ -17,6 +17,7 @@ members = [
     "crates/memory-procedural",
     "crates/memory-prospective",
     "crates/memory-lifecycle",
+    "crates/memory-policy",
 ]
 
 [workspace.package]
@@ -41,6 +42,7 @@ memory-graph = { path = "crates/memory-graph" }
 memory-procedural = { path = "crates/memory-procedural" }
 memory-prospective = { path = "crates/memory-prospective" }
 memory-lifecycle = { path = "crates/memory-lifecycle" }
+memory-policy = { path = "crates/memory-policy" }
 provider-pgvector = { path = "crates/providers/provider-pgvector" }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
