@@ -268,3 +268,18 @@ inspectable plan whose steps reflect caller hints and keyword evidence
 before vector fallback).
 
 **Gate output:** _recorded at phase close_
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK
+152 hermetic tests passing across 7 crates (memory-retrieval adds 23)
+GATE PASSED
+```
+
+**Live verification:** none required this phase — pure planning logic,
+fully covered by deterministic unit tests.
+
+**Deviations:** 6 commits — the phase is a single cohesive crate
+(request/plan model, rule-based planner, keyword module, engine hook);
+recorded honestly against the >=20 floor.
