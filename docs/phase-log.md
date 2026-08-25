@@ -147,3 +147,55 @@ WHERE clause compared the wrong version (found by the live test before
 first commit). Provider-level delete is physical; soft-delete semantics
 live at engine level via forget() tombstones, with the append-only
 memory_versions ledger preserving revisions.
+
+---
+
+## Phase 03 — Redis Working Memory
+
+**Branch:** `phase/03-redis-working-memory`
+**Objective:** Very fast active/session state: current session state,
+active goals, recent observations, tool results, TTL, checkpoint
+references, version-safe updates. Working memory never graduates to
+long-term automatically.
+
+**Exit criteria:** Session state survives concurrent tool-call writers
+without lost updates; expiry is enforced by the backend.
+
+**Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK
+clippy: OK
+features: OK  (memory-core/postgres + memory-core/redis combos)
+22 passed (core) | 3 passed (e2e) | 53 passed (domain) | 10 passed (provider-api)
+19 passed (provider-local) | 3 passed (provider-postgres) | 4+5 ignored (live)
+test: OK
+GATE PASSED
+```
+
+107 hermetic tests, zero failures.
+
+**Live-Redis verification:**
+
+```text
+$ BARQ_TEST_REDIS_URL=redis://localhost:6399 \
+  cargo test -p provider-redis --test redis_live -- --ignored --test-threads=1
+test atomic_cas_survives_concurrent_writers ... ok
+test namespaces_partition_sessions ... ok
+test set_get_delete_roundtrip_with_ttl ... ok
+test snapshot_view_roundtrips_through_engine_shaped_data ... ok
+test ttl_expiry_is_enforced_by_the_backend ... ok
+test result: ok. 5 passed; 0 failed
+```
+
+Ran against a throwaway `redis:7-alpine` Docker container on port 6399.
+The CAS test proves concurrent-writer safety: two writers from revision
+1, exactly one wins, the loser receives SessionConflict with the true
+stored revision, and no update is lost.
+
+**Deviations:** 3 commits — cohesive provider + trait extension; the
+session-conflict error refactor and CAS contract landed as one unit by
+design rather than padding further.
