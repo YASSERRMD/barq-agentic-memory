@@ -3,8 +3,8 @@
 //! Order matters and is deliberate:
 //! 1. exact hash      -> Ignore (byte-identical)
 //! 2. normalized hash -> Ignore (wording differs, statement identical)
-//! 3. canonical key + semantic similarity + temporal overlap
-//!                    -> Merge (same fact, newer wording)
+//! 3. canonical key + semantic similarity + temporal compatibility
+//!    -> Merge (same fact, newer wording)
 //! 4. entity overlap high but facts differ -> Link
 //! 5. similarity near threshold -> Review
 //! 6. otherwise -> Add
@@ -83,14 +83,10 @@ impl DedupEngine {
 
         if let Some((best_candidate, sim)) = best {
             let same_subject = both_have_subject(best_candidate, incoming)
-                && subject_keys_equal(
-                    best_candidate.subject.as_ref(),
-                    incoming.subject.as_ref(),
-                );
+                && subject_keys_equal(best_candidate.subject.as_ref(), incoming.subject.as_ref());
             // Merge targets must still be open facts: a closed historical
             // era never absorbs a current statement — history stays put.
-            let temporal_compatible =
-                !best_candidate.validity().has_ended(Utc::now());
+            let temporal_compatible = !best_candidate.validity().has_ended(Utc::now());
 
             if same_subject && sim >= merge_threshold && temporal_compatible {
                 // 3. Same fact about the same subject, newer wording:
@@ -130,7 +126,10 @@ impl DedupEngine {
 }
 
 fn keywords(record_subject: Option<&MemorySubject>) -> Vec<String> {
-    record_subject.map(|s| s.canonical_key()).into_iter().collect()
+    record_subject
+        .map(|s| s.canonical_key())
+        .into_iter()
+        .collect()
 }
 
 fn subject_keys_equal(a: Option<&MemorySubject>, b: Option<&MemorySubject>) -> bool {
@@ -185,7 +184,9 @@ mod tests {
     fn byte_identical_content_ignores() {
         let engine = DedupEngine::default();
         let existing = vec![record("Atlas uses PostgreSQL", "atlas")];
-        let d = engine.evaluate(&record("Atlas uses PostgreSQL", "atlas"), &existing, |_| 1.0);
+        let d = engine.evaluate(&record("Atlas uses PostgreSQL", "atlas"), &existing, |_| {
+            1.0
+        });
         assert_eq!(d.action, DedupAction::Ignore);
         assert!(d.reason.contains("exact"));
     }
@@ -204,7 +205,10 @@ mod tests {
     fn same_subject_high_similarity_overlapping_validity_merges() {
         let engine = DedupEngine::default();
         let existing = vec![record("Atlas runs its workloads on PostgreSQL", "atlas")];
-        let incoming = record("Project Atlas does its database work in PostgreSQL", "atlas");
+        let incoming = record(
+            "Project Atlas does its database work in PostgreSQL",
+            "atlas",
+        );
 
         // Hashes differ; similarity must carry the decision.
         let d = engine.evaluate(&incoming, &existing, |_| 0.93);
@@ -215,10 +219,20 @@ mod tests {
     #[test]
     fn similarity_alone_without_same_subject_never_merges() {
         let engine = DedupEngine::default();
-        let existing = vec![record("Atlas runs its workloads on PostgreSQL", "other-project")];
-        let incoming = record("Project Atlas does its database work in PostgreSQL", "atlas");
+        let existing = vec![record(
+            "Atlas runs its workloads on PostgreSQL",
+            "other-project",
+        )];
+        let incoming = record(
+            "Project Atlas does its database work in PostgreSQL",
+            "atlas",
+        );
         let d = engine.evaluate(&incoming, &existing, |_| 0.99);
-        assert_ne!(d.action, DedupAction::Merge, "similarity alone must not merge");
+        assert_ne!(
+            d.action,
+            DedupAction::Merge,
+            "similarity alone must not merge"
+        );
     }
 
     #[test]
@@ -249,6 +263,10 @@ mod tests {
         historical.valid_to = Some(Utc::now() - chrono::Duration::days(30));
         let incoming = record("Atlas now standardizes on MySQL everywhere", "atlas");
         let d = engine.evaluate(&incoming, &[historical], |_| 0.95);
-        assert_ne!(d.action, DedupAction::Merge, "past-era facts must not absorb current ones");
+        assert_ne!(
+            d.action,
+            DedupAction::Merge,
+            "past-era facts must not absorb current ones"
+        );
     }
 }
