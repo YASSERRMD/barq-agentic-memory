@@ -89,3 +89,61 @@ memory store, persistent store, working store) plus the engine facade,
 integration tests, and gate fixes; splitting further would have produced
 non-building intermediate states. Recorded per the floor-not-padding
 rule.
+
+---
+
+## Phase 02 — PostgreSQL Canonical Store
+
+**Branch:** `phase/02-postgres-store`
+**Objective:** Production-grade authoritative persistence: SQLx provider,
+migrations, version history, provenance, temporal validity, soft delete,
+retention metadata, optimistic concurrency. Indexes cover tenant,
+workspace, user, agent, memory type, subject, status, validity, and
+creation time.
+
+**Exit criteria:** PostgreSQL becomes the source of truth for long-term
+memory.
+
+**Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK
+clippy: OK
+22 passed  (memory-core unit)
+3 passed   (memory-core e2e)
+53 passed  (memory-domain)
+7 passed   (memory-provider-api)
+19 passed  (provider-local)
+3 passed   (provider-postgres unit: mapping roundtrips)
+4 ignored  (pg_live: opt-in, see below)
+test: OK
+GATE PASSED
+```
+
+107 hermetic tests, zero failures. The shared gate requires no database.
+
+**Live-PG verification:**
+
+```text
+$ BARQ_TEST_PG_URL=postgres://barq@localhost:5433/barq_memories \
+  cargo test -p provider-postgres --test pg_live -- --ignored --test-threads=1
+test crud_with_scope_isolation_and_temporal_validity ... ok
+test migrations_are_idempotent_and_schema_is_complete ... ok
+test namespaces_partition_the_same_database ... ok
+test optimistic_concurrency_detects_stale_writers ... ok
+test result: ok. 4 passed; 0 failed
+```
+
+Ran against a throwaway PostgreSQL 18 instance (port 5433, trust auth,
+temp data dir) — no system services touched.
+
+**Deviations:** 3 commits — below the floor because the phase is one
+cohesive provider (migration SQL, store implementation, live tests).
+Defects found and fixed inside the phase: the optimistic-concurrency
+WHERE clause compared the wrong version (found by the live test before
+first commit). Provider-level delete is physical; soft-delete semantics
+live at engine level via forget() tombstones, with the append-only
+memory_versions ledger preserving revisions.

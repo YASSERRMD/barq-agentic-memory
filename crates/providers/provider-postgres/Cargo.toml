@@ -1,26 +1,21 @@
 [package]
-name = "memory-core"
-description = "Provider registry, engine assembly, and the MemoryEngine facade for the Barq memory engine."
+name = "provider-postgres"
+description = "PostgreSQL canonical store for the Barq memory engine (SQLx)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[features]
-default = []
-postgres = ["dep:sqlx", "dep:provider-postgres"]
-
 [dependencies]
 memory-domain.workspace = true
 memory-provider-api.workspace = true
-provider-local.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sqlx = { workspace = true, optional = true }
-provider-postgres = { workspace = true, optional = true }
+uuid.workspace = true
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
 
 [dev-dependencies]
 tokio.workspace = true

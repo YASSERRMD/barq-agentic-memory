@@ -15,7 +15,7 @@ async fn main() {
         ..EngineConfig::default()
     };
 
-    let engine = MemoryEngine::from_config(config).expect("engine");
+    let engine = MemoryEngine::from_config(config).await.expect("engine");
 
     // remember()
     let fact = engine
