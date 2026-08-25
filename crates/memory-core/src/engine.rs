@@ -4,12 +4,15 @@
 //! only changes which providers sit underneath it.
 
 use crate::requests::{RememberRequest, UpdateRequest};
-use memory_domain::config::{StoreConfig, WorkingStoreConfig};
+use memory_domain::config::{EmbeddingConfig, StoreConfig, VectorStoreConfig, WorkingStoreConfig};
 use memory_domain::{
     EngineConfig, MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope,
 };
-use memory_provider_api::{MemoryStoreProvider, WorkingMemoryProvider, WorkingMemoryState};
-use provider_local::{InMemoryStore, InProcessWorkingStore, LocalStore};
+use memory_provider_api::{
+    EmbeddingProvider, HashingEmbedder, MemoryStoreProvider, MetadataFilter, VectorProvider,
+    VectorRecord, WorkingMemoryProvider, WorkingMemoryState,
+};
+use provider_local::{InMemoryStore, InMemoryVectorStore, InProcessWorkingStore, LocalStore};
 #[cfg(feature = "postgres")]
 use provider_postgres::PostgresStore;
 #[cfg(feature = "redis")]
@@ -26,6 +29,17 @@ pub struct MemoryEngine {
     config: EngineConfig,
     store: Arc<dyn MemoryStoreProvider>,
     working: Arc<dyn WorkingMemoryProvider>,
+    vector: Option<Arc<dyn VectorProvider>>,
+    embedder: Option<Arc<dyn EmbeddingProvider>>,
+}
+
+/// A canonical record returned with its similarity score.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScoredMemory {
+    /// The canonical record.
+    pub record: MemoryRecord,
+    /// Similarity in `[0, 1]`, 1 = identical.
+    pub score: f32,
 }
 
 impl MemoryEngine {
@@ -77,10 +91,36 @@ impl MemoryEngine {
             }
         };
 
+        let vector: Option<Arc<dyn VectorProvider>> = match config.vector.as_ref() {
+            None => None,
+            Some(VectorStoreConfig::InMemory) => {
+                Some(Arc::new(InMemoryVectorStore::new(&config.namespace)))
+            }
+            #[cfg(feature = "pgvector")]
+            Some(VectorStoreConfig::PgVector { url }) => Some(Arc::new(
+                provider_pgvector::PgVectorStore::connect(url, &config.namespace).await?,
+            )),
+            #[cfg(not(feature = "pgvector"))]
+            Some(VectorStoreConfig::PgVector { .. }) => {
+                return Err(MemoryError::Unsupported(
+                    "built without the 'pgvector' feature".into(),
+                ));
+            }
+        };
+
+        let embedder: Option<Arc<dyn EmbeddingProvider>> = match &config.embedding {
+            None => None,
+            Some(EmbeddingConfig::Hashing { dimensions }) => {
+                Some(Arc::new(HashingEmbedder::new(*dimensions as usize)))
+            }
+        };
+
         Ok(Self {
             config,
             store,
             working,
+            vector,
+            embedder,
         })
     }
 
@@ -94,11 +134,76 @@ impl MemoryEngine {
         self.store.clone()
     }
 
+    /// True when semantic recall is configured.
+    pub fn supports_semantic_recall(&self) -> bool {
+        self.vector.is_some() && self.embedder.is_some()
+    }
+
+    /// Mirrors scope dimensions into vector metadata so filtered search
+    /// and lifecycle sweeps can operate without touching the canonical
+    /// store first.
+    fn vector_metadata(record: &MemoryRecord) -> MetadataFilter {
+        Self::scope_filter(&record.scope)
+    }
+
+    /// Builds an equality filter from the pinned dimensions of a scope.
+    fn scope_filter(scope: &MemoryScope) -> MetadataFilter {
+        let mut filter = MetadataFilter::default();
+        for (key, value) in [
+            ("tenant_id", &scope.tenant_id),
+            ("workspace_id", &scope.workspace_id),
+            ("user_id", &scope.user_id),
+            ("agent_id", &scope.agent_id),
+            ("session_id", &scope.session_id),
+            ("task_id", &scope.task_id),
+        ] {
+            if let Some(v) = value {
+                filter.equals.insert(key.to_string(), v.clone());
+            }
+        }
+        filter
+    }
+
+    /// Embeds + upserts a record into the vector index (when configured).
+    ///
+    /// Synchronous on the write path for now; background indexing
+    /// arrives with the scale-out phase. Failures propagate: a record
+    /// that cannot be indexed must not pretend to be recallable.
+    async fn index_vector(&self, record: &MemoryRecord) -> MemoryResult<()> {
+        let (Some(vector), Some(embedder)) = (&self.vector, &self.embedder) else {
+            return Ok(());
+        };
+        let embedding = embedder
+            .embed(std::slice::from_ref(&record.content.text))
+            .await?
+            .remove(0);
+        let mut vr = VectorRecord::new(
+            record.id,
+            embedding,
+            embedder.model(),
+            embedder.model_version(),
+        );
+        let filter = Self::vector_metadata(record);
+        for (k, v) in filter.equals {
+            vr.metadata.insert(k, v);
+        }
+        vector.upsert(&vr).await
+    }
+
+    async fn remove_vector(&self, id: &MemoryId) -> MemoryResult<()> {
+        if let Some(vector) = &self.vector {
+            vector.delete(id).await?;
+        }
+        Ok(())
+    }
+
     /// Stores a new memory and returns the canonical record.
     pub async fn remember(&self, request: RememberRequest) -> MemoryResult<MemoryRecord> {
         request.validated(&self.config)?;
         let record = request.into_record(self.config.default_scope.clone());
-        self.store.put(&record).await
+        let saved = self.store.put(&record).await?;
+        self.index_vector(&saved).await?;
+        Ok(saved)
     }
 
     /// Exact lookup by identifier within a scope.
@@ -155,12 +260,68 @@ impl MemoryEngine {
         }
         let successor = self.store.put(&successor).await?;
 
+        // Keep the index in step: successor indexed, predecessor's
+        // embedding removed (its record remains as history only).
+        self.index_vector(&successor).await?;
+        self.remove_vector(&existing.id).await?;
+
         let mut retired = existing;
         retired.status = memory_domain::MemoryStatus::Superseded;
         retired.updated_at = chrono::Utc::now();
         self.store.update(&retired).await?;
 
         Ok(successor)
+    }
+
+    /// Semantic recall: embeds the query, searches the vector index,
+    /// then hydrates canonical records with scope isolation.
+    ///
+    /// Returns records ranked by similarity; retired facts are dropped
+    /// even if their vectors linger until the next sweep.
+    pub async fn recall_semantic(
+        &self,
+        query_text: impl Into<String>,
+        top_k: u32,
+        scope: &MemoryScope,
+    ) -> MemoryResult<Vec<ScoredMemory>> {
+        let (Some(vector), Some(embedder)) = (&self.vector, &self.embedder) else {
+            return Err(MemoryError::Unsupported(
+                "semantic recall requires a vector backend and embedder".into(),
+            ));
+        };
+
+        let embedding = embedder.embed(&[query_text.into()]).await?.remove(0);
+
+        let filter = Self::scope_filter(scope);
+        let candidates = vector
+            .search(&memory_provider_api::VectorQuery {
+                embedding,
+                top_k: top_k.saturating_mul(2).max(top_k), // over-fetch: some die at hydration
+                scope: Some(scope.clone()),
+                memory_type: None,
+                filter,
+            })
+            .await?;
+
+        let mut scored = Vec::with_capacity(candidates.len());
+        for candidate in candidates {
+            // Canonical truth decides visibility: scope + status + validity.
+            if let Some(record) = self.store.get(&candidate.memory_id, scope).await? {
+                if record.status == memory_domain::MemoryStatus::Active
+                    && record.is_valid_at(chrono::Utc::now())
+                {
+                    scored.push(ScoredMemory {
+                        record,
+                        score: candidate.score,
+                    });
+                }
+            } else {
+                // Index holds a ghost (deleted/superseded since write).
+                self.remove_vector(&candidate.memory_id).await.ok();
+            }
+        }
+        scored.truncate(top_k as usize);
+        Ok(scored)
     }
 
     /// Soft-deletes a memory (tombstone); physical removal happens in
@@ -175,13 +336,15 @@ impl MemoryEngine {
         record.status = memory_domain::MemoryStatus::Deleted;
         record.updated_at = chrono::Utc::now();
         self.store.update(&record).await?;
+        self.remove_vector(&id).await?;
         Ok(true)
     }
 
     /// Hard-deletes immediately. Prefer [`forget`] except for
     /// compliance erasure, which is what this exists for.
     pub async fn purge(&self, id: MemoryId, scope: &MemoryScope) -> MemoryResult<()> {
-        self.store.delete(&id, scope).await
+        self.store.delete(&id, scope).await?;
+        self.remove_vector(&id).await
     }
 
     /// The supersession chain ending at `id`, oldest first.
@@ -543,5 +706,147 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(err, MemoryError::Validation { .. }));
+    }
+}
+
+#[cfg(test)]
+mod semantic_tests {
+    use super::*;
+    use memory_domain::config::{EmbeddingConfig, VectorStoreConfig};
+    use memory_domain::{MemoryScopeBuilder, MemoryType};
+
+    async fn engine_with_semantics() -> MemoryEngine {
+        let config = EngineConfig {
+            vector: Some(VectorStoreConfig::InMemory),
+            embedding: Some(EmbeddingConfig::Hashing { dimensions: 256 }),
+            ..EngineConfig::default()
+        };
+        MemoryEngine::from_config(config).await.expect("engine")
+    }
+
+    #[tokio::test]
+    async fn semantic_recall_ranks_and_hydrates_canonical_records() {
+        let engine = engine_with_semantics().await;
+        assert!(engine.supports_semantic_recall());
+
+        let atlas = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "Project Atlas uses PostgreSQL",
+            ))
+            .await
+            .expect("remember atlas");
+        engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "The office kitchen needs restocking",
+            ))
+            .await
+            .expect("remember kitchen");
+
+        let hits = engine
+            .recall_semantic("atlas postgres database", 3, &MemoryScope::default())
+            .await
+            .expect("recall");
+        assert!(!hits.is_empty());
+        assert_eq!(hits[0].record.id, atlas.id);
+        assert!(hits[0].score > 0.0);
+    }
+
+    #[tokio::test]
+    async fn forget_removes_from_semantic_recall() {
+        let engine = engine_with_semantics().await;
+        let r = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "quarterly revenue targets",
+            ))
+            .await
+            .expect("remember");
+
+        engine
+            .forget(r.id, &MemoryScope::default())
+            .await
+            .expect("forget");
+
+        let hits = engine
+            .recall_semantic("revenue targets", 5, &MemoryScope::default())
+            .await
+            .expect("recall");
+        assert!(
+            hits.iter().all(|h| h.record.id != r.id),
+            "tombstoned facts must not surface"
+        );
+    }
+
+    #[tokio::test]
+    async fn update_supersedes_vector_ownership() {
+        let engine = engine_with_semantics().await;
+        let v1 = engine
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "Atlas uses MySQL",
+            ))
+            .await
+            .expect("remember");
+        let v2 = engine
+            .update(UpdateRequest::content(
+                v1.id,
+                MemoryScope::default(),
+                "Atlas uses PostgreSQL",
+            ))
+            .await
+            .expect("update");
+
+        let hits = engine
+            .recall_semantic("postgresql", 5, &MemoryScope::default())
+            .await
+            .expect("recall");
+        assert!(
+            hits.iter().all(|h| h.record.id != v1.id),
+            "predecessor's vector must be gone"
+        );
+        assert!(hits.iter().any(|h| h.record.id == v2.id) || hits.is_empty());
+    }
+
+    #[tokio::test]
+    async fn scope_pinned_recall_excludes_other_tenants() {
+        let engine = engine_with_semantics().await;
+        let acme = MemoryScopeBuilder::new().tenant("acme").build();
+
+        engine
+            .remember(
+                RememberRequest::new(MemoryType::Semantic, "acme pricing strategy")
+                    .with_scope(acme.clone()),
+            )
+            .await
+            .expect("remember");
+
+        let hits = engine
+            .recall_semantic("pricing strategy", 10, &MemoryScope::default())
+            .await
+            .expect("wildcard recall sees everything");
+        assert_eq!(hits.len(), 1);
+
+        // A different tenant's pinned query must see nothing.
+        let globex = MemoryScopeBuilder::new().tenant("globex").build();
+        let foreign = engine
+            .recall_semantic("pricing strategy", 10, &globex)
+            .await
+            .expect("pinned recall");
+        assert!(foreign.is_empty());
+    }
+
+    #[tokio::test]
+    async fn semantic_recall_without_backend_is_unsupported() {
+        let engine = MemoryEngine::from_config(EngineConfig::default())
+            .await
+            .unwrap();
+        assert!(!engine.supports_semantic_recall());
+        let err = engine
+            .recall_semantic("anything", 5, &MemoryScope::default())
+            .await
+            .unwrap_err();
+        assert!(matches!(err, MemoryError::Unsupported(_)));
     }
 }

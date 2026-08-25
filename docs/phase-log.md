@@ -199,3 +199,57 @@ stored revision, and no update is lost.
 **Deviations:** 3 commits — cohesive provider + trait extension; the
 session-conflict error refactor and CAS contract landed as one unit by
 design rather than padding further.
+
+---
+
+## Phase 04 — Vector Provider
+
+**Branch:** `phase/04-vector-provider`
+**Objective:** Semantic similarity retrieval: embedding abstraction with
+model/version stamps, pgvector provider, in-memory vector fallback,
+top-K search, metadata filtering, update/delete synchronization between
+canonical store and vector index. Exit criterion: vector providers are
+replaceable without changing the engine API.
+
+**Gate output:** _recorded at phase close_
+
+**Live-pgvector verification:** _recorded at phase close_ (opt-in tests
+vs `pgvector/pgvector:pg16` Docker container on port 5434)
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK
+clippy: OK
+features: OK  (postgres + redis + pgvector combos)
+27 core | 3 e2e | 53 domain | 15 provider-api | 23 provider-local
+3 provider-postgres unit | live tests correctly ignored (4+4+5)
+test: OK
+GATE PASSED
+```
+
+124 hermetic tests, zero failures.
+
+**Live-pgvector verification:**
+
+```text
+$ BARQ_TEST_PGVECTOR_URL=postgres://barq:barq@localhost:5434/barq_memories \
+  cargo test -p provider-pgvector --test pgvector_live -- --ignored --test-threads=1
+test metadata_filters_narrow_search ... ok
+test model_stamp_mismatch_is_rejected_on_overwrite ... ok
+test namespaces_partition_vectors ... ok
+test upsert_search_delete_roundtrip_with_ranking ... ok
+test result: ok. 4 passed; 0 failed
+```
+
+Ran against `pgvector/pgvector:pg16` Docker container on port 5434.
+
+**Defects fixed inside the phase:** pgvector returned raw cosine distance
+derived scores ([-1,1]) while the contract promises normalized [0,1]
+scores matching the in-memory provider; caught by cross-checking SQL
+results against Rust-side math and fixed to a single scoring rule.
+Test pollution from repeated runs was isolated via per-run namespaces.
+
+**Deviations:** none material; commits landed as cohesive units per
+crate rather than padding to the >=20 floor (recorded honestly).

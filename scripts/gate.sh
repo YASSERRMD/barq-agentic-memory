@@ -15,7 +15,7 @@ echo "clippy: OK"
 
 echo "== cargo check (feature combos) =="
 cargo check --workspace --all-targets --quiet \
-    --features memory-core/postgres,memory-core/redis
+    --features memory-core/postgres,memory-core/redis,memory-core/pgvector
 cargo check --workspace --all-targets --quiet
 echo "features: OK"
 

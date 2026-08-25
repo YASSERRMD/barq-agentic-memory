@@ -1,0 +1,20 @@
+[package]
+name = "provider-pgvector"
+description = "pgvector-backed vector index for the Barq memory engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+memory-domain.workspace = true
+memory-provider-api.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx = { workspace = true, features = ["migrate"] }
+uuid.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

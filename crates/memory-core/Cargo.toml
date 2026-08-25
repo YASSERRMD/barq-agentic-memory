@@ -11,6 +11,7 @@ rust-version.workspace = true
 default = []
 postgres = ["dep:sqlx", "dep:provider-postgres"]
 redis = ["dep:provider-redis"]
+pgvector = ["dep:provider-pgvector"]
 
 [dependencies]
 memory-domain.workspace = true
@@ -23,6 +24,7 @@ serde_json.workspace = true
 sqlx = { workspace = true, optional = true }
 provider-postgres = { workspace = true, optional = true }
 provider-redis = { workspace = true, optional = true }
+provider-pgvector = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio.workspace = true
