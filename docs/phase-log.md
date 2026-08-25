@@ -403,3 +403,28 @@ GATE PASSED  (193 hermetic tests across 11 crates)
 
 **Deviations:** 3 commits vs floor 20; cohesive crate + engine wiring.
 Recorded honestly.
+
+---
+
+## Phase 10 — Episodic Memory
+
+**Branch:** `phase/10-episodic-memory`
+**Objective:** Episode model (event time, action, outcome, feedback,
+success/failure, trajectory summary, evidence references) with storage
+behind a replaceable trait; PostgreSQL/vector/object-store providers
+attach without engine changes.
+
+**Exit criteria:** Met — episodes round-trip through the engine with
+scope isolation, time/success/evidence filtering; canonical memories
+are citable as evidence from episodes.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (203 hermetic tests across 12 crates)
+```
+
+**Deviations:** 3 commits vs floor 20; PG-backed episode table defers to
+the server phase (the trait is the contract). Recorded honestly.
