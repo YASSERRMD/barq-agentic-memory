@@ -20,6 +20,7 @@ memory-retrieval.workspace = true
 memory-classifier.workspace = true
 memory-dedup.workspace = true
 memory-episodic.workspace = true
+memory-graph.workspace = true
 memory-conflict.workspace = true
 provider-local.workspace = true
 async-trait.workspace = true

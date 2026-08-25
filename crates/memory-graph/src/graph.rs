@@ -93,23 +93,38 @@ mod tests {
     #[test]
     fn entity_keys_normalize_like_subjects() {
         let subject = memory_domain::MemorySubject::new("Atlas").with_type("Project");
-        assert_eq!(EntityKey::from_subject(&subject).0, "project:Atlas",
-            "must equal MemorySubject::canonical_key exactly");
         assert_eq!(
             EntityKey::from_subject(&subject).0,
-            subject.canonical_key()
+            "project:Atlas",
+            "must equal MemorySubject::canonical_key exactly"
         );
+        assert_eq!(EntityKey::from_subject(&subject).0, subject.canonical_key());
         assert_eq!(EntityKey::new(None, " postgres ").0, "postgres");
     }
 
     #[test]
     fn relations_uppercase_types_and_reject_degenerate_cases() {
         let e = MemoryId::generate();
-        let r = Relation::new(e, EntityKey::new(None, "a"), "uses", EntityKey::new(None, "b"))
-            .expect("valid");
+        let r = Relation::new(
+            e,
+            EntityKey::new(None, "a"),
+            "uses",
+            EntityKey::new(None, "b"),
+        )
+        .expect("valid");
         assert_eq!(r.relation_type, "USES");
 
-        assert!(Relation::new(e, EntityKey::new(None, "x"), "", EntityKey::new(None, "b")).is_err());
-        assert!(Relation::new(e, EntityKey::new(None, "x"), "uses", EntityKey::new(None, "x")).is_err());
+        assert!(
+            Relation::new(e, EntityKey::new(None, "x"), "", EntityKey::new(None, "b")).is_err()
+        );
+        assert!(
+            Relation::new(
+                e,
+                EntityKey::new(None, "x"),
+                "uses",
+                EntityKey::new(None, "x")
+            )
+            .is_err()
+        );
     }
 }

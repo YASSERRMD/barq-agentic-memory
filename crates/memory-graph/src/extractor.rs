@@ -52,8 +52,7 @@ impl RelationExtractor for RuleBasedRelationExtractor {
 
         for (cue, relation_type) in RELATION_CUES {
             if let Some(after) = lower.split(cue).nth(1) {
-                let object_words: Vec<&str> =
-                    after.split_whitespace().take(3).collect();
+                let object_words: Vec<&str> = after.split_whitespace().take(3).collect();
                 if object_words.is_empty() {
                     continue;
                 }
@@ -85,7 +84,11 @@ mod tests {
         let x = RuleBasedRelationExtractor;
         let subject = MemorySubject::new("atlas").with_type("project");
         let rels = x
-            .extract(MemoryId::generate(), &subject, "Project Atlas uses PostgreSQL")
+            .extract(
+                MemoryId::generate(),
+                &subject,
+                "Project Atlas uses PostgreSQL",
+            )
             .await
             .expect("extract");
 

@@ -145,12 +145,9 @@ mod tests {
     #[tokio::test]
     async fn relations_roundtrip_and_index_both_directions() {
         let g = InMemoryGraphStore::new();
-        let atlas = EntityKey::from_subject(
-            &MemorySubject::new("atlas").with_type("project"),
-        );
-        let postgres = EntityKey::from_subject(
-            &MemorySubject::new("postgres").with_type("database"),
-        );
+        let atlas = EntityKey::from_subject(&MemorySubject::new("atlas").with_type("project"));
+        let postgres =
+            EntityKey::from_subject(&MemorySubject::new("postgres").with_type("database"));
         let evidence = MemoryId::generate();
 
         g.upsert_entity(&Entity {
@@ -160,12 +157,16 @@ mod tests {
         .await
         .expect("upsert");
 
-        g.add_relation(&Relation::new(evidence, atlas.clone(), "uses", postgres.clone()).expect("rel"))
-            .await
-            .expect("add");
-        g.add_relation(&Relation::new(evidence, atlas.clone(), "uses", postgres.clone()).expect("rel"))
-            .await
-            .expect("duplicate is idempotent");
+        g.add_relation(
+            &Relation::new(evidence, atlas.clone(), "uses", postgres.clone()).expect("rel"),
+        )
+        .await
+        .expect("add");
+        g.add_relation(
+            &Relation::new(evidence, atlas.clone(), "uses", postgres.clone()).expect("rel"),
+        )
+        .await
+        .expect("duplicate is idempotent");
         assert_eq!(g.edge_count(), 1);
 
         let from = g.relations_from(&atlas).await.expect("from");
@@ -190,15 +191,21 @@ mod tests {
         g.add_relation(&Relation::new(e, b.clone(), "uses", a.clone()).expect("rel"))
             .await
             .expect("add");
-        g.add_relation(&Relation::new(MemoryId::generate(), a.clone(), "owns", c.clone()).expect("rel"))
-            .await
-            .expect("add");
+        g.add_relation(
+            &Relation::new(MemoryId::generate(), a.clone(), "owns", c.clone()).expect("rel"),
+        )
+        .await
+        .expect("add");
 
         let hood = neighbors(&g, &a).await.expect("hood");
         assert_eq!(hood.len(), 2);
-        assert!(hood.contains(&(Relation::new(e, b.clone(), "uses", a.clone()).unwrap(), Direction::Incoming)));
-        assert!(hood
-            .iter()
-            .any(|(r, d)| r.from == a && *d == Direction::Outgoing));
+        assert!(hood.contains(&(
+            Relation::new(e, b.clone(), "uses", a.clone()).unwrap(),
+            Direction::Incoming
+        )));
+        assert!(
+            hood.iter()
+                .any(|(r, d)| r.from == a && *d == Direction::Outgoing)
+        );
     }
 }
