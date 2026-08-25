@@ -167,10 +167,7 @@ mod tests {
     use super::*;
 
     fn record_scope() -> MemoryScope {
-        MemoryScope::builder()
-            .tenant("acme")
-            .user("u-1")
-            .build()
+        MemoryScope::builder().tenant("acme").user("u-1").build()
     }
 
     #[test]

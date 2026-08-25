@@ -55,7 +55,8 @@ impl EngineConfig {
         if self.namespace.trim().is_empty() {
             return Err(MemoryError::validation("namespace", "must not be blank"));
         }
-        if !self.namespace
+        if !self
+            .namespace
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
         {
@@ -310,18 +311,28 @@ mod tests {
 
     #[test]
     fn namespaces_reject_shell_unfriendly_characters() {
-        let mut c = EngineConfig::default();
-        c.namespace = "bad namespace!".into();
+        let c = EngineConfig {
+            namespace: "bad namespace!".into(),
+            ..EngineConfig::default()
+        };
         assert!(c.validated().is_err());
 
-        c.namespace = "   ".into();
-        assert!(c.validated().is_err());
+        let blank = EngineConfig {
+            namespace: "   ".into(),
+            ..EngineConfig::default()
+        };
+        assert!(blank.validated().is_err());
     }
 
     #[test]
     fn limits_must_be_positive() {
-        let mut c = EngineConfig::default();
-        c.limits.max_batch_size = 0;
+        let c = EngineConfig {
+            limits: LimitsConfig {
+                max_batch_size: 0,
+                ..LimitsConfig::default()
+            },
+            ..EngineConfig::default()
+        };
         assert!(c.validated().is_err());
     }
 }

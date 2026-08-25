@@ -28,7 +28,9 @@ pub enum MemoryError {
     },
 
     /// Concurrent writers diverged; retry with fresh state.
-    #[error("concurrent modification of memory {memory_id}: expected version {expected}, found {actual}")]
+    #[error(
+        "concurrent modification of memory {memory_id}: expected version {expected}, found {actual}"
+    )]
     VersionConflict {
         /// Record that changed underneath us.
         memory_id: MemoryId,

@@ -203,7 +203,10 @@ mod tests {
         let q = MemoryQuery::new().of_type(MemoryType::Prospective);
         let json = serde_json::to_string(&q).expect("serialize");
         let back: MemoryQuery = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(back, MemoryQuery::default().of_type(MemoryType::Prospective));
+        assert_eq!(
+            back,
+            MemoryQuery::default().of_type(MemoryType::Prospective)
+        );
         let _ = MemoryScopeBuilder::default(); // builder stays reachable via re-export path
     }
 

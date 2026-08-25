@@ -6,8 +6,8 @@
 //! configured backend has no registered constructor.
 
 use crate::registry::{ProviderCapability, ProviderRegistry};
-use memory_domain::config::{EngineConfig, StoreConfig, VectorStoreConfig, WorkingStoreConfig};
 use memory_domain::MemoryResult;
+use memory_domain::config::{EngineConfig, StoreConfig, VectorStoreConfig, WorkingStoreConfig};
 
 /// The capabilities a given configuration requires at assembly time.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,7 +41,9 @@ impl AssemblyPlan {
 
     /// True when every required capability resolves in `registry`.
     pub fn is_satisfiable(&self, registry: &ProviderRegistry) -> bool {
-        self.required.iter().all(|c| registry_resolves(registry, *c))
+        self.required
+            .iter()
+            .all(|c| registry_resolves(registry, *c))
     }
 
     /// Missing capabilities in registration order.
@@ -89,10 +91,7 @@ pub fn describe_working(config: &WorkingStoreConfig) -> &'static str {
 }
 
 /// Convenience check combining plan + registry into an error.
-pub fn ensure_satisfiable(
-    config: &EngineConfig,
-    registry: &ProviderRegistry,
-) -> MemoryResult<()> {
+pub fn ensure_satisfiable(config: &EngineConfig, registry: &ProviderRegistry) -> MemoryResult<()> {
     config.validated()?;
     let plan = AssemblyPlan::from_config(config);
     let missing = plan.missing(registry);
@@ -156,7 +155,11 @@ mod tests {
             async fn update(&self, m: &MemoryRecord) -> memory_domain::MemoryResult<MemoryRecord> {
                 Ok(m.clone())
             }
-            async fn delete(&self, _id: &MemoryId, _scope: &MemoryScope) -> memory_domain::MemoryResult<()> {
+            async fn delete(
+                &self,
+                _id: &MemoryId,
+                _scope: &MemoryScope,
+            ) -> memory_domain::MemoryResult<()> {
                 Ok(())
             }
         }
@@ -179,10 +182,7 @@ mod tests {
             }),
             "local"
         );
-        assert_eq!(
-            describe_vector(&VectorStoreConfig::InMemory),
-            "in-memory"
-        );
+        assert_eq!(describe_vector(&VectorStoreConfig::InMemory), "in-memory");
         assert_eq!(
             describe_working(&WorkingStoreConfig::InProcess),
             "in-process"
@@ -199,9 +199,7 @@ mod tests {
 
         match err {
             memory_domain::MemoryError::ProviderMissing { capability } => {
-                assert!(
-                    capability == "store" || capability == "working"
-                );
+                assert!(capability == "store" || capability == "working");
             }
             other => panic!("unexpected error: {other}"),
         }

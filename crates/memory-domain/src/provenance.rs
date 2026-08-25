@@ -145,12 +145,8 @@ mod tests {
 
     #[test]
     fn authority_orders_sources_sensibly() {
-        assert!(
-            SourceKind::User.default_authority() > SourceKind::Agent.default_authority()
-        );
-        assert!(
-            SourceKind::Tool.default_authority() > SourceKind::Agent.default_authority()
-        );
+        assert!(SourceKind::User.default_authority() > SourceKind::Agent.default_authority());
+        assert!(SourceKind::Tool.default_authority() > SourceKind::Agent.default_authority());
     }
 
     #[test]

@@ -81,7 +81,11 @@ mod tests {
     fn emptiness_requires_trimmed_text_or_structure() {
         assert!(MemoryContent::from_text("   \n").is_empty());
         assert!(!MemoryContent::from_text("hello").is_empty());
-        assert!(!MemoryContent::default().with_structured(json!(null)).is_empty());
+        assert!(
+            !MemoryContent::default()
+                .with_structured(json!(null))
+                .is_empty()
+        );
     }
 
     #[test]

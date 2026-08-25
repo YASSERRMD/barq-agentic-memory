@@ -127,10 +127,7 @@ mod tests {
         assert!(MemoryType::Working.is_transient());
         assert!(!MemoryType::Semantic.is_transient());
         assert_eq!(
-            MemoryType::ALL
-                .iter()
-                .filter(|t| t.is_transient())
-                .count(),
+            MemoryType::ALL.iter().filter(|t| t.is_transient()).count(),
             1
         );
     }

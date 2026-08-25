@@ -6,5 +6,5 @@
 pub mod assembly;
 pub mod registry;
 
-pub use assembly::{ensure_satisfiable, AssemblyPlan};
+pub use assembly::{AssemblyPlan, ensure_satisfiable};
 pub use registry::{ProviderCapability, ProviderRegistry};

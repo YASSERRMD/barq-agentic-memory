@@ -24,5 +24,6 @@ pub use provenance::{Provenance, RetentionClass, RetentionPolicy, SourceKind};
 pub use query::MemoryQuery;
 pub use record::MemoryRecord;
 pub use scope::MemoryScope;
+pub use scope::MemoryScopeBuilder;
 pub use subject::MemorySubject;
 pub use taxonomy::{MemoryStatus, MemoryType};

@@ -5,9 +5,7 @@
 //! wire fakes without environment tricks.
 
 use memory_domain::{MemoryError, MemoryResult};
-use memory_provider_api::{
-    MemoryStoreProvider, VectorProvider, WorkingMemoryProvider,
-};
+use memory_provider_api::{MemoryStoreProvider, VectorProvider, WorkingMemoryProvider};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -63,11 +61,7 @@ impl ProviderRegistry {
 
     /// Registers a vector index under `name` and marks it default when
     /// none is.
-    pub fn register_vector(
-        &mut self,
-        name: impl Into<String>,
-        provider: Arc<dyn VectorProvider>,
-    ) {
+    pub fn register_vector(&mut self, name: impl Into<String>, provider: Arc<dyn VectorProvider>) {
         let name = name.into();
         self.defaults
             .entry(ProviderCapability::Vector)
@@ -122,9 +116,12 @@ impl ProviderRegistry {
 
     /// Resolves a named provider of any capability.
     pub fn named_store(&self, name: &str) -> MemoryResult<Arc<dyn MemoryStoreProvider>> {
-        self.stores.get(name).cloned().ok_or(MemoryError::ProviderMissing {
-            capability: ProviderCapability::Store.as_str(),
-        })
+        self.stores
+            .get(name)
+            .cloned()
+            .ok_or(MemoryError::ProviderMissing {
+                capability: ProviderCapability::Store.as_str(),
+            })
     }
 
     /// Number of registered providers across all capabilities.
@@ -142,12 +139,17 @@ impl ProviderRegistry {
         capability: ProviderCapability,
         map: &BTreeMap<String, T>,
     ) -> MemoryResult<T> {
-        let default = self.defaults.get(&capability).ok_or(MemoryError::ProviderMissing {
-            capability: capability.as_str(),
-        })?;
-        map.get(default).cloned().ok_or(MemoryError::ProviderMissing {
-            capability: capability.as_str(),
-        })
+        let default = self
+            .defaults
+            .get(&capability)
+            .ok_or(MemoryError::ProviderMissing {
+                capability: capability.as_str(),
+            })?;
+        map.get(default)
+            .cloned()
+            .ok_or(MemoryError::ProviderMissing {
+                capability: capability.as_str(),
+            })
     }
 }
 
@@ -180,7 +182,11 @@ mod tests {
         async fn update(&self, m: &MemoryRecord) -> memory_domain::MemoryResult<MemoryRecord> {
             Ok(m.clone())
         }
-        async fn delete(&self, _id: &MemoryId, _scope: &MemoryScope) -> memory_domain::MemoryResult<()> {
+        async fn delete(
+            &self,
+            _id: &MemoryId,
+            _scope: &MemoryScope,
+        ) -> memory_domain::MemoryResult<()> {
             Ok(())
         }
     }
@@ -248,7 +254,12 @@ mod tests {
             Err(e) => e,
             Ok(_) => panic!("expected missing vector capability"),
         };
-        assert!(matches!(err, MemoryError::ProviderMissing { capability: "vector" }));
+        assert!(matches!(
+            err,
+            MemoryError::ProviderMissing {
+                capability: "vector"
+            }
+        ));
     }
 
     #[test]
@@ -256,10 +267,7 @@ mod tests {
         let mut reg = ProviderRegistry::new();
         reg.register_vector("v1", Arc::new(NoopVector));
 
-        assert!(
-            reg.set_default(ProviderCapability::Vector, "nope")
-                .is_err()
-        );
+        assert!(reg.set_default(ProviderCapability::Vector, "nope").is_err());
         reg.set_default(ProviderCapability::Vector, "v1")
             .expect("valid switch");
 

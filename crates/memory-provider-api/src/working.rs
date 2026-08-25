@@ -1,8 +1,8 @@
 //! Working (active session) state contract.
 
 use async_trait::async_trait;
-use memory_domain::MemoryResult;
 use chrono::{DateTime, Utc};
+use memory_domain::MemoryResult;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 use std::time::Duration;

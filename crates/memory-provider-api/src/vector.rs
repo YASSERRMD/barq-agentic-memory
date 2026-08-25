@@ -57,9 +57,7 @@ pub struct MetadataFilter {
 impl MetadataFilter {
     /// True when a record's metadata satisfies every clause.
     pub fn matches(&self, metadata: &HashMap<String, String>) -> bool {
-        self.equals
-            .iter()
-            .all(|(k, v)| metadata.get(k) == Some(v))
+        self.equals.iter().all(|(k, v)| metadata.get(k) == Some(v))
     }
 }
 

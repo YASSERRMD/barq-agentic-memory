@@ -82,7 +82,10 @@ mod tests {
     fn serializes_as_plain_string() {
         let id = MemoryId::generate();
         let json = serde_json::to_string(&id).expect("serialize");
-        assert!(!json.contains('{'), "expected transparent string, got {json}");
+        assert!(
+            !json.contains('{'),
+            "expected transparent string, got {json}"
+        );
 
         let back: MemoryId = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(id, back);

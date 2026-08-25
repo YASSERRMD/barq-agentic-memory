@@ -20,11 +20,7 @@ pub trait MemoryStoreProvider: Send + Sync {
     async fn put(&self, memory: &MemoryRecord) -> MemoryResult<MemoryRecord>;
 
     /// Fetches one record by id within the given scope.
-    async fn get(
-        &self,
-        id: &MemoryId,
-        scope: &MemoryScope,
-    ) -> MemoryResult<Option<MemoryRecord>>;
+    async fn get(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<Option<MemoryRecord>>;
 
     /// Replaces the stored version of an already-existing record.
     async fn update(&self, memory: &MemoryRecord) -> MemoryResult<MemoryRecord>;
@@ -47,9 +43,7 @@ pub trait MemoryStoreProvider: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use memory_domain::{
-        MemoryContent, MemoryScopeBuilder, MemoryType,
-    };
+    use memory_domain::{MemoryContent, MemoryScopeBuilder, MemoryType};
     use std::sync::Mutex;
 
     #[derive(Default)]
@@ -99,10 +93,10 @@ mod tests {
 
     #[tokio::test]
     async fn trait_object_dispatch_roundtrips_a_record() {
-        let store: std::sync::Arc<dyn MemoryStoreProvider> = std::sync::Arc::new(TinyStore::default());
+        let store: std::sync::Arc<dyn MemoryStoreProvider> =
+            std::sync::Arc::new(TinyStore::default());
         let scope = MemoryScopeBuilder::new().tenant("t").build();
-        let mut record =
-            MemoryRecord::new(MemoryType::Semantic, MemoryContent::from_text("hello"));
+        let mut record = MemoryRecord::new(MemoryType::Semantic, MemoryContent::from_text("hello"));
         record.scope = scope.clone();
 
         let put = store.put(&record).await.expect("put");
@@ -121,7 +115,8 @@ mod tests {
 
     #[tokio::test]
     async fn default_query_is_unsupported_for_minimal_backends() {
-        let store: std::sync::Arc<dyn MemoryStoreProvider> = std::sync::Arc::new(TinyStore::default());
+        let store: std::sync::Arc<dyn MemoryStoreProvider> =
+            std::sync::Arc::new(TinyStore::default());
         let err = store.query(&MemoryQuery::new()).await.unwrap_err();
         assert!(matches!(err, MemoryError::Unsupported(_)));
     }

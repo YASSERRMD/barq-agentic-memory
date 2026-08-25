@@ -223,12 +223,7 @@ mod tests {
     #[test]
     fn serde_roundtrip_preserves_full_record() {
         let r = sample()
-            .with_scope(
-                MemoryScope::builder()
-                    .tenant("acme")
-                    .user("u-1")
-                    .build(),
-            )
+            .with_scope(MemoryScope::builder().tenant("acme").user("u-1").build())
             .with_subtype("fact")
             .with_confidence(0.9)
             .with_retention(RetentionPolicy::permanent());

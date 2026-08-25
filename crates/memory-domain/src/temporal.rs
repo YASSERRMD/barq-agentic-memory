@@ -40,12 +40,8 @@ impl ValidityWindow {
 
     /// True if the two windows share at least one instant.
     pub fn overlaps(&self, other: &ValidityWindow) -> bool {
-        let starts_before_other_ends = other.to.is_none_or(|o| {
-            self.from.is_none_or(|s| s < o)
-        });
-        let ends_after_other_starts = other.from.is_none_or(|o| {
-            self.to.is_none_or(|e| o < e)
-        });
+        let starts_before_other_ends = other.to.is_none_or(|o| self.from.is_none_or(|s| s < o));
+        let ends_after_other_starts = other.from.is_none_or(|o| self.to.is_none_or(|e| o < e));
         starts_before_other_ends && ends_after_other_starts
     }
 
@@ -110,7 +106,10 @@ mod tests {
         };
 
         assert!(a.overlaps(&overlapping));
-        assert!(!a.overlaps(&adjacent), "adjacent half-open windows do not overlap");
+        assert!(
+            !a.overlaps(&adjacent),
+            "adjacent half-open windows do not overlap"
+        );
         assert!(!a.overlaps(&disjoint));
     }
 
