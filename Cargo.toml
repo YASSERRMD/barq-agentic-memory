@@ -13,6 +13,7 @@ members = [
     "crates/memory-dedup",
     "crates/memory-conflict",
     "crates/memory-episodic",
+    "crates/memory-graph",
 ]
 
 [workspace.package]
@@ -33,6 +34,7 @@ memory-classifier = { path = "crates/memory-classifier" }
 memory-dedup = { path = "crates/memory-dedup" }
 memory-conflict = { path = "crates/memory-conflict" }
 memory-episodic = { path = "crates/memory-episodic" }
+memory-graph = { path = "crates/memory-graph" }
 provider-pgvector = { path = "crates/providers/provider-pgvector" }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }

@@ -817,6 +817,7 @@ dependencies = [
  "memory-conflict",
  "memory-dedup",
  "memory-domain",
+ "memory-episodic",
  "memory-provider-api",
  "memory-retrieval",
  "provider-local",
@@ -863,6 +864,16 @@ dependencies = [
  "memory-domain",
  "serde",
  "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "memory-graph"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "memory-domain",
+ "serde",
  "tokio",
 ]
 
