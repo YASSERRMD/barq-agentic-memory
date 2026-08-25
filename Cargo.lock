@@ -818,6 +818,9 @@ dependencies = [
  "memory-dedup",
  "memory-domain",
  "memory-episodic",
+ "memory-graph",
+ "memory-procedural",
+ "memory-prospective",
  "memory-provider-api",
  "memory-retrieval",
  "provider-local",
@@ -874,6 +877,28 @@ dependencies = [
  "async-trait",
  "memory-domain",
  "serde",
+ "tokio",
+]
+
+[[package]]
+name = "memory-procedural"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "memory-domain",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "memory-prospective"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "memory-domain",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

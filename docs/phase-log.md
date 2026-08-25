@@ -480,3 +480,29 @@ GATE PASSED  (219 hermetic tests across 14 crates)
 **Deviations:** 2 commits vs floor 20; single cohesive module. The
 lifecycle rides canonical records via structured payloads, so no new
 storage provider is needed. Recorded honestly.
+
+---
+
+## Phase 13 — Prospective Memory
+
+**Branch:** `phase/13-prospective-memory`
+**Objective:** Goals with deadline, dependency, status, trigger
+description, completion criteria. States PLANNED / ACTIVE / WAITING /
+BLOCKED / COMPLETED / CANCELLED (+ derived EXPIRED). The engine does
+not become an autonomous scheduler.
+
+**Exit criteria:** Met — lifecycle transitions validated; EXPIRED
+derived at read time from deadlines (stored state untouched by any
+scheduler); due-recall surfaces unstarted commitments approaching
+deadlines; dependency gating modeled on records.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (226 hermetic tests across 15 crates)
+```
+
+**Deviations:** 2 commits vs floor 20 (one was a formatting follow-up);
+single cohesive module. Recorded honestly.
