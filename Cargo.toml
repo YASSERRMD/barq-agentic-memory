@@ -7,6 +7,7 @@ members = [
     "crates/providers/provider-local",
     "crates/providers/provider-postgres",
     "crates/providers/provider-redis",
+    "crates/providers/provider-pgvector",
 ]
 
 [workspace.package]
@@ -22,6 +23,7 @@ memory-provider-api = { path = "crates/memory-provider-api" }
 provider-local = { path = "crates/providers/provider-local" }
 provider-postgres = { path = "crates/providers/provider-postgres" }
 provider-redis = { path = "crates/providers/provider-redis" }
+provider-pgvector = { path = "crates/providers/provider-pgvector" }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 serde = { version = "1", features = ["derive"] }
