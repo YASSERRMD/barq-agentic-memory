@@ -283,3 +283,18 @@ fully covered by deterministic unit tests.
 **Deviations:** 6 commits — the phase is a single cohesive crate
 (request/plan model, rule-based planner, keyword module, engine hook);
 recorded honestly against the >=20 floor.
+
+---
+
+## Phase 06 — Hybrid Retrieval
+
+**Branch:** `phase/06-hybrid-retrieval`
+**Objective:** Combine exact match, keyword, vector similarity, entity
+match, temporal relevance, recency, importance, confidence, and source
+authority. Pipeline: parallel retrieval -> merge candidates -> scope
+filter -> remove superseded -> score -> rerank -> return.
+
+**Exit criteria:** A single recall() call on the engine executes the full
+plan and returns deterministically ranked, canonically-hydrated results.
+
+**Gate output:** _recorded at phase close_
