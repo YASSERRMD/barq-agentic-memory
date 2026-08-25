@@ -32,6 +32,7 @@ pub struct MemoryEngine {
     pub(crate) vector: Option<Arc<dyn VectorProvider>>,
     pub(crate) embedder: Option<Arc<dyn EmbeddingProvider>>,
     pub(crate) classifier: Option<Arc<dyn memory_classifier::MemoryClassifier>>,
+    pub(crate) episodes: Option<std::sync::Arc<dyn memory_episodic::EpisodeStore>>,
 }
 
 /// A canonical record returned with its similarity score.
@@ -123,7 +124,17 @@ impl MemoryEngine {
             vector,
             embedder,
             classifier: None,
+            episodes: None,
         })
+    }
+
+    /// Attaches an episode store for experience tracking.
+    pub fn with_episodes(
+        mut self,
+        store: std::sync::Arc<dyn memory_episodic::EpisodeStore>,
+    ) -> Self {
+        self.episodes = Some(store);
+        self
     }
 
     /// Attaches a classifier for auto-classified writes.

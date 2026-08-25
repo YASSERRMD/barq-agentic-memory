@@ -4,7 +4,7 @@
 //! server phase lands; the in-memory store keeps embedded mode fully
 //! functional today.
 
-use crate::episode::{Episode, EpisodeBuilder};
+use crate::episode::Episode;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use memory_domain::{MemoryId, MemoryResult, MemoryScope};
@@ -38,8 +38,7 @@ pub trait EpisodeStore: Send + Sync {
     async fn append(&self, episode: &Episode) -> MemoryResult<()>;
 
     /// Fetches one episode by id within a scope.
-    async fn get(&self, id: &MemoryId, scope: &MemoryScope)
-        -> MemoryResult<Option<Episode>>;
+    async fn get(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<Option<Episode>>;
 
     /// Filtered listing, newest event first.
     async fn query(&self, query: &EpisodeQuery) -> MemoryResult<Vec<Episode>>;
@@ -91,16 +90,9 @@ impl EpisodeStore for InMemoryEpisodeStore {
         Ok(())
     }
 
-    async fn get(
-        &self,
-        id: &MemoryId,
-        scope: &MemoryScope,
-    ) -> MemoryResult<Option<Episode>> {
+    async fn get(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<Option<Episode>> {
         let guard = self.episodes.read().expect("poisoned");
-        Ok(guard
-            .get(id)
-            .filter(|e| scope.contains(&e.scope))
-            .cloned())
+        Ok(guard.get(id).filter(|e| scope.contains(&e.scope)).cloned())
     }
 
     async fn query(&self, q: &EpisodeQuery) -> MemoryResult<Vec<Episode>> {
@@ -135,7 +127,7 @@ impl EpisodeStore for InMemoryEpisodeStore {
             })
             .cloned()
             .collect();
-        hits.sort_by(|a, b| b.event_time.cmp(&a.event_time));
+        hits.sort_by_key(|e| std::cmp::Reverse(e.event_time));
         if q.limit > 0 {
             hits.truncate(q.limit as usize);
         }

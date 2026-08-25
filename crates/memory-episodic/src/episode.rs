@@ -148,7 +148,9 @@ mod tests {
     #[test]
     fn event_time_can_differ_from_recorded_time() {
         let yesterday = Utc::now() - Duration::days(1);
-        let e = Episode::builder("backup", "completed").at(yesterday).build();
+        let e = Episode::builder("backup", "completed")
+            .at(yesterday)
+            .build();
         assert!(e.event_time < e.recorded_at);
     }
 
