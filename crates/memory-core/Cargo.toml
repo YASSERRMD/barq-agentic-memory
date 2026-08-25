@@ -17,6 +17,7 @@ pgvector = ["dep:provider-pgvector"]
 memory-domain.workspace = true
 memory-provider-api.workspace = true
 memory-retrieval.workspace = true
+memory-classifier.workspace = true
 provider-local.workspace = true
 async-trait.workspace = true
 chrono.workspace = true

@@ -9,6 +9,6 @@ pub mod classification;
 pub mod extraction;
 pub mod rules;
 
-pub use classification::{Classification, ClassifierInput};
+pub use classification::{Classification, ClassifierInput, MemoryClassifier};
 pub use extraction::{ExtractedMemory, ExtractionProvider};
-pub use rules::RuleBasedClassifier;
+pub use rules::{RuleBasedClassifier, RuleBasedExtractor};

@@ -11,17 +11,18 @@ use memory_domain::MemoryResult;
 use memory_domain::MemoryType;
 
 /// Preference statements.
-const PREFERENCE_PATTERNS: [&str; 5] = [
-    "prefers", "prefer", "likes", "dislikes", "favorite",
-];
+const PREFERENCE_PATTERNS: [&str; 5] = ["prefers", "prefer", "likes", "dislikes", "favorite"];
 /// Commitments and obligations.
 const PROSPECTIVE_PATTERNS: [&str; 6] = [
-    "will send", "needs to", "must", "deadline", "by friday", "follow up",
+    "will send",
+    "needs to",
+    "must",
+    "deadline",
+    "by friday",
+    "follow up",
 ];
 /// Skills and how-tos.
-const PROCEDURAL_PATTERNS: [&str; 4] = [
-    "how to deploy", "steps to", "procedure for", "runbook",
-];
+const PROCEDURAL_PATTERNS: [&str; 4] = ["how to deploy", "steps to", "procedure for", "runbook"];
 
 /// Rule-based classifier; the engine's zero-LLM default.
 #[derive(Clone, Debug, Default)]
@@ -147,7 +148,7 @@ impl RuleBasedExtractor {
 }
 
 fn split_sentences(text: &str) -> Vec<String> {
-    text.split(|c| c == '.' || c == '\n' || c == '!' || c == '?')
+    text.split(['.', '\n', '!', '?'])
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect()
@@ -170,7 +171,8 @@ mod tests {
     #[tokio::test]
     async fn preferences_are_detected_with_subtype() {
         let c = RuleBasedClassifier::default();
-        let d = c.classify(&ClassifierInput::text("Customer prefers email contact"))
+        let d = c
+            .classify(&ClassifierInput::text("Customer prefers email contact"))
             .await
             .expect("classify");
         assert_eq!(d.memory_type, MemoryType::Semantic);
@@ -212,11 +214,12 @@ mod tests {
 
     #[tokio::test]
     async fn custom_preference_terms_extend_vocabulary() {
-        let c = RuleBasedClassifier::default().with_preference_terms(vec![
-            "loves".into(),
-            "allergic to".into(),
-        ]);
-        let d = c.classify(&ClassifierInput::text("User is allergic to peanuts")).await.expect("classify");
+        let c = RuleBasedClassifier::default()
+            .with_preference_terms(vec!["loves".into(), "allergic to".into()]);
+        let d = c
+            .classify(&ClassifierInput::text("User is allergic to peanuts"))
+            .await
+            .expect("classify");
         assert_eq!(d.subtype.as_deref(), Some("preference"));
     }
 
@@ -238,16 +241,16 @@ mod tests {
             "commitment must be extracted"
         );
         assert!(
-            !texts.iter().any(|t: &&str| t.eq_ignore_ascii_case("nice weather today")),
+            !texts
+                .iter()
+                .any(|t: &&str| t.eq_ignore_ascii_case("nice weather today")),
             "small talk must not become memory"
         );
     }
 
     #[test]
     fn keywords_cap_at_eight() {
-        let kws = keywords(
-            "alpha beta gamma delta epsilon zeta eta theta iota kappa",
-        );
+        let kws = keywords("alpha beta gamma delta epsilon zeta eta theta iota kappa");
         assert_eq!(kws.len(), 8);
         assert_eq!(kws.first().unwrap(), "alpha");
     }
