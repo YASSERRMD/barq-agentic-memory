@@ -428,3 +428,29 @@ GATE PASSED  (203 hermetic tests across 12 crates)
 
 **Deviations:** 3 commits vs floor 20; PG-backed episode table defers to
 the server phase (the trait is the contract). Recorded honestly.
+
+---
+
+## Phase 11 — Entity and Graph Memory
+
+**Branch:** `phase/11-entity-graph`
+**Objective:** Entity resolver, relation extractor, graph provider trait
+(starting backend: in-memory; Neo4j adapter follows behind the same
+trait). Graph records must reference canonical memory ids.
+
+**Exit criteria:** Met — subject-anchored memories produce USES/RUNS_ON/
+OWNED_BY-style edges citing their canonical id as evidence; forgetting
+a memory retracts exactly its edges; entity keys resolve byte-
+identically from MemorySubject without mapping tables.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (212 hermetic tests across 13 crates)
+```
+
+**Deviations:** 3 commits vs floor 20. Neo4j adapter intentionally
+deferred: the trait is the contract and no Neo4j instance exists in the
+gate environment; recorded honestly.
