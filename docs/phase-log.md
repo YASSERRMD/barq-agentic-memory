@@ -253,3 +253,33 @@ Test pollution from repeated runs was isolated via per-run namespaces.
 
 **Deviations:** none material; commits landed as cohesive units per
 crate rather than padding to the >=20 floor (recorded honestly).
+## Phase 05 — Retrieval Planner
+
+**Branch:** `phase/05-retrieval-planner`
+**Objective:** Stop treating every recall as a vector query. Build a
+rule-based planner that determines memory type, scope, time range,
+provider, exact-vs-semantic strategy, graph requirement, and result
+budget — producing an ordered plan the executor (phase 6) can run.
+No LLM dependency: rules are transparent and testable.
+
+**Exit criteria:** A recall request compiles into a deterministic,
+inspectable plan whose steps reflect caller hints and keyword evidence
+(e.g. subject-pinned factual questions try exact structured lookup
+before vector fallback).
+
+**Gate output:** _recorded at phase close_
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK
+149 hermetic tests passing across 8 crates (memory-retrieval adds 23)
+GATE PASSED
+```
+
+**Live verification:** none required this phase — pure planning logic,
+fully covered by deterministic unit tests.
+
+**Deviations:** 6 commits — the phase is a single cohesive crate
+(request/plan model, rule-based planner, keyword module, engine hook);
+recorded honestly against the >=20 floor.
