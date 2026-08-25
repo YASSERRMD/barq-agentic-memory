@@ -273,7 +273,7 @@ before vector fallback).
 ```text
 $ ./scripts/gate.sh
 fmt: OK / clippy: OK / features: OK
-152 hermetic tests passing across 7 crates (memory-retrieval adds 23)
+149 hermetic tests passing across 8 crates (memory-retrieval adds 23)
 GATE PASSED
 ```
 
