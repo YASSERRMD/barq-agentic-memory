@@ -51,11 +51,8 @@ pub fn global_scope() -> MemoryScope {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use memory_domain::{
-        MemoryContent, MemorySubject, MemoryType,
-        RetentionPolicy,
-    };
     use chrono::{Duration, Utc};
+    use memory_domain::{MemoryContent, MemorySubject, MemoryType, RetentionPolicy};
 
     fn record() -> MemoryRecord {
         let mut r = MemoryRecord::new(

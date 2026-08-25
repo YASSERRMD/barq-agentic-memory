@@ -6,9 +6,7 @@
 
 use crate::filter::matches_query;
 use async_trait::async_trait;
-use memory_domain::{
-    MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope,
-};
+use memory_domain::{MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope};
 use memory_provider_api::MemoryStoreProvider;
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -58,11 +56,7 @@ impl MemoryStoreProvider for InMemoryStore {
         Ok(memory.clone())
     }
 
-    async fn get(
-        &self,
-        id: &MemoryId,
-        scope: &MemoryScope,
-    ) -> MemoryResult<Option<MemoryRecord>> {
+    async fn get(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<Option<MemoryRecord>> {
         let guard = self.records.read().expect("poisoned");
         match guard.get(id) {
             Some(record) if scope.contains(&record.scope) => Ok(Some(record.clone())),
@@ -72,9 +66,9 @@ impl MemoryStoreProvider for InMemoryStore {
 
     async fn update(&self, memory: &MemoryRecord) -> MemoryResult<MemoryRecord> {
         let mut guard = self.records.write().expect("poisoned");
-        let slot = guard
-            .get_mut(&memory.id)
-            .ok_or(MemoryError::NotFound { memory_id: memory.id })?;
+        let slot = guard.get_mut(&memory.id).ok_or(MemoryError::NotFound {
+            memory_id: memory.id,
+        })?;
         *slot = memory.clone();
         Ok(memory.clone())
     }
@@ -127,17 +121,26 @@ mod tests {
         r.version += 1;
         store.update(&r).await.expect("update");
 
-        let got = store.get(&r.id, &MemoryScope::default()).await.expect("get");
+        let got = store
+            .get(&r.id, &MemoryScope::default())
+            .await
+            .expect("get");
         assert_eq!(got.unwrap().content.text, "updated");
 
-        store.delete(&r.id, &MemoryScope::default()).await.expect("delete");
+        store
+            .delete(&r.id, &MemoryScope::default())
+            .await
+            .expect("delete");
         assert!(store.is_empty());
     }
 
     #[tokio::test]
     async fn update_missing_record_is_not_found() {
         let store = InMemoryStore::new("test");
-        let err = store.update(&sample("x", MemoryType::Semantic)).await.unwrap_err();
+        let err = store
+            .update(&sample("x", MemoryType::Semantic))
+            .await
+            .unwrap_err();
         assert!(matches!(err, MemoryError::NotFound { .. }));
     }
 
@@ -149,10 +152,16 @@ mod tests {
         store.put(&r).await.expect("put");
 
         let foreign = MemoryScopeBuilder::new().tenant("other").build();
-        store.delete(&r.id, &foreign).await.expect("invisible delete ok");
+        store
+            .delete(&r.id, &foreign)
+            .await
+            .expect("invisible delete ok");
         assert_eq!(store.len(), 1, "foreign caller must not remove it");
 
-        store.delete(&r.id, &r.scope.clone()).await.expect("owner deletes");
+        store
+            .delete(&r.id, &r.scope.clone())
+            .await
+            .expect("owner deletes");
         assert!(store.is_empty());
     }
 
@@ -161,19 +170,13 @@ mod tests {
         let store = InMemoryStore::new("test");
         for i in 0..5 {
             store
-                .put(&sample(
-                    &format!("atlas fact {i}"),
-                    MemoryType::Semantic,
-                ))
+                .put(&sample(&format!("atlas fact {i}"), MemoryType::Semantic))
                 .await
                 .expect("put");
         }
         for i in 0..3 {
             store
-                .put(&sample(
-                    &format!("atlas event {i}"),
-                    MemoryType::Episodic,
-                ))
+                .put(&sample(&format!("atlas event {i}"), MemoryType::Episodic))
                 .await
                 .expect("put");
         }

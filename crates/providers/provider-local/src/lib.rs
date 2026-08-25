@@ -6,11 +6,11 @@
 
 pub mod filter;
 pub mod memory;
-// pub mod persistent;
+pub mod persistent;
 // pub mod working;
 
 pub use memory::InMemoryStore;
-// pub use persistent::LocalStore;
+pub use persistent::LocalStore;
 // pub use working::InProcessWorkingStore;
 
 /// Default table name shared by the embedded store implementations.
