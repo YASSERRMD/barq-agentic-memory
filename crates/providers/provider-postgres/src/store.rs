@@ -54,15 +54,9 @@ impl PostgresStore {
                     if statement.trim().is_empty() {
                         continue;
                     }
-                    sqlx::query(&statement)
-                        .execute(&pool)
-                        .await
-                        .map_err(|e| {
-                            MemoryError::storage(
-                                "postgres",
-                                format!("migration {name}: {e}"),
-                            )
-                        })?;
+                    sqlx::query(&statement).execute(&pool).await.map_err(|e| {
+                        MemoryError::storage("postgres", format!("migration {name}: {e}"))
+                    })?;
                 }
                 sqlx::query("INSERT INTO _barq_migrations (name) VALUES ($1)")
                     .bind(name)
@@ -91,7 +85,10 @@ impl PostgresStore {
     ///
     /// Provider-native extension beyond the store contract; the engine
     /// uses the supersedes chain for logical history.
-    pub async fn version_history(&self, id: MemoryId) -> MemoryResult<Vec<(i64, String, chrono::DateTime<chrono::Utc>)>> {
+    pub async fn version_history(
+        &self,
+        id: MemoryId,
+    ) -> MemoryResult<Vec<(i64, String, chrono::DateTime<chrono::Utc>)>> {
         let rows = sqlx::query(
             "SELECT version, status, recorded_at FROM memory_versions
              WHERE memory_id = $1 ORDER BY version DESC",
@@ -102,7 +99,13 @@ impl PostgresStore {
         .map_err(pg_error)?;
         Ok(rows
             .into_iter()
-            .map(|r| (r.get::<i64, _>("version"), r.get::<String, _>("status"), r.get("recorded_at")))
+            .map(|r| {
+                (
+                    r.get::<i64, _>("version"),
+                    r.get::<String, _>("status"),
+                    r.get("recorded_at"),
+                )
+            })
             .collect())
     }
 }
@@ -139,7 +142,7 @@ impl MemoryStoreProvider for PostgresStore {
 
     async fn put(&self, memory: &MemoryRecord) -> MemoryResult<MemoryRecord> {
         let mut txn = self.pool.begin().await.map_err(pg_error)?;
-        insert_memory(&mut *txn, &self.namespace, memory).await?;
+        insert_memory(&mut txn, &self.namespace, memory).await?;
         sqlx::query(
             "INSERT INTO memory_versions (memory_id, version, status, content_text)
              VALUES ($1, $2, $3, $4)",
@@ -155,19 +158,13 @@ impl MemoryStoreProvider for PostgresStore {
         Ok(memory.clone())
     }
 
-    async fn get(
-        &self,
-        id: &MemoryId,
-        scope: &MemoryScope,
-    ) -> MemoryResult<Option<MemoryRecord>> {
-        let row = sqlx::query(
-            "SELECT * FROM memories WHERE id = $1 AND namespace = $2",
-        )
-        .bind(id.as_uuid())
-        .bind(&self.namespace)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(pg_error)?;
+    async fn get(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<Option<MemoryRecord>> {
+        let row = sqlx::query("SELECT * FROM memories WHERE id = $1 AND namespace = $2")
+            .bind(id.as_uuid())
+            .bind(&self.namespace)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(pg_error)?;
 
         match row {
             None => Ok(None),
@@ -220,17 +217,19 @@ impl MemoryStoreProvider for PostgresStore {
         .bind(memory.valid_from)
         .bind(memory.valid_to)
         .bind(status_to_db(memory.status))
-        .bind(memory.version as i64)
+        .bind(memory.version as i64 + 1) // $22: new version
         .bind(serde_json::to_value(&memory.provenance).map_err(serde_err)?)
-        .bind(serde_json::to_value(&memory.retention).map_err(serde_err)?)
-        .bind((memory.version - 1) as i64)
+        .bind(serde_json::to_value(memory.retention).map_err(serde_err)?)
+        .bind(memory.version as i64) // $25: expected current version
         .execute(&mut *txn)
         .await
         .map_err(pg_error)?;
 
         if result.rows_affected() == 0 {
             return Err(match self.get(&memory.id, &MemoryScope::default()).await? {
-                None => MemoryError::NotFound { memory_id: memory.id },
+                None => MemoryError::NotFound {
+                    memory_id: memory.id,
+                },
                 Some(stored) => MemoryError::VersionConflict {
                     memory_id: memory.id,
                     expected: memory.version,
@@ -244,7 +243,7 @@ impl MemoryStoreProvider for PostgresStore {
              VALUES ($1, $2, $3, $4)",
         )
         .bind(memory.id.as_uuid())
-        .bind(memory.version as i64)
+        .bind(memory.version as i64 + 1)
         .bind(status_to_db(memory.status))
         .bind(&memory.content.text)
         .execute(&mut *txn)
@@ -284,18 +283,17 @@ impl MemoryStoreProvider for PostgresStore {
 
     async fn query(&self, query: &MemoryQuery) -> MemoryResult<Vec<MemoryRecord>> {
         let query = query.clone().validated()?;
-        let mut sql = sqlx::QueryBuilder::new(
-            "SELECT * FROM memories WHERE namespace = ",
-        );
+        let mut sql = sqlx::QueryBuilder::new("SELECT * FROM memories WHERE namespace = ");
         sql.push_bind(&self.namespace);
 
         if !query.memory_types.is_empty() {
             let types: Vec<&str> = query.memory_types.iter().map(|t| type_to_db(*t)).collect();
-            sql.push(" AND memory_type = ANY(").push_bind(types).push(")");
+            sql.push(" AND memory_type = ANY(")
+                .push_bind(types)
+                .push(")");
         }
         if !query.statuses.is_empty() {
-            let statuses: Vec<&str> =
-                query.statuses.iter().map(|s| status_to_db(*s)).collect();
+            let statuses: Vec<&str> = query.statuses.iter().map(|s| status_to_db(*s)).collect();
             sql.push(" AND status = ANY(").push_bind(statuses).push(")");
         }
         if let Some(subject) = &query.subject {
@@ -339,11 +337,7 @@ impl MemoryStoreProvider for PostgresStore {
         sql.push(" ORDER BY created_at DESC LIMIT ")
             .push_bind(query.limit as i64);
 
-        let rows = sql
-            .build()
-            .fetch_all(&self.pool)
-            .await
-            .map_err(pg_error)?;
+        let rows = sql.build().fetch_all(&self.pool).await.map_err(pg_error)?;
         rows.iter().map(row_to_record).collect()
     }
 }
@@ -401,7 +395,7 @@ async fn insert_memory(
     .bind(m.version as i64)
     .bind(m.supersedes.map(|id| id.as_uuid()))
     .bind(serde_json::to_value(&m.provenance).map_err(serde_err)?)
-    .bind(serde_json::to_value(&m.retention).map_err(serde_err)?)
+    .bind(serde_json::to_value(m.retention).map_err(serde_err)?)
     .bind(m.created_at)
     .bind(m.updated_at)
     .execute(&mut *txn)
@@ -414,8 +408,9 @@ fn row_to_record(row: &sqlx::postgres::PgRow) -> MemoryResult<MemoryRecord> {
     let memory_type: String = row.try_get("memory_type").map_err(pg_error)?;
     let status_raw: String = row.try_get("status").map_err(pg_error)?;
 
-    let subject = if let Some(entity_id) =
-        row.try_get::<Option<String>, _>("subject_id").map_err(pg_error)?
+    let subject = if let Some(entity_id) = row
+        .try_get::<Option<String>, _>("subject_id")
+        .map_err(pg_error)?
     {
         Some(MemorySubject {
             entity_type: row.try_get("subject_type").map_err(pg_error)?,
@@ -429,7 +424,7 @@ fn row_to_record(row: &sqlx::postgres::PgRow) -> MemoryResult<MemoryRecord> {
     let structured = row
         .try_get::<Option<serde_json::Value>, _>("content_structured")
         .map_err(pg_error)?
-        .and_then(|v| if v.is_null() { None } else { Some(v) });
+        .filter(|v| !v.is_null());
 
     Ok(MemoryRecord {
         id: MemoryId::from_uuid(row.try_get::<uuid::Uuid, _>("id").map_err(pg_error)?),

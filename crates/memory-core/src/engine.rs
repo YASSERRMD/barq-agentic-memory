@@ -9,9 +9,9 @@ use memory_domain::{
     EngineConfig, MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope,
 };
 use memory_provider_api::{MemoryStoreProvider, WorkingMemoryProvider, WorkingMemoryState};
+use provider_local::{InMemoryStore, InProcessWorkingStore, LocalStore};
 #[cfg(feature = "postgres")]
 use provider_postgres::PostgresStore;
-use provider_local::{InMemoryStore, InProcessWorkingStore, LocalStore};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -38,7 +38,10 @@ impl MemoryEngine {
             StoreConfig::Memory => Arc::new(InMemoryStore::new(&config.namespace)),
             StoreConfig::Local { path } => Arc::new(LocalStore::open(path, &config.namespace)?),
             #[cfg(feature = "postgres")]
-            StoreConfig::Postgres { url, max_connections } => {
+            StoreConfig::Postgres {
+                url,
+                max_connections,
+            } => {
                 let pool = sqlx::pool::PoolOptions::<sqlx::Postgres>::new()
                     .max_connections(*max_connections)
                     .connect(url)
@@ -240,7 +243,9 @@ mod tests {
     use memory_domain::{MemoryScopeBuilder, MemoryType, RetentionPolicy};
 
     async fn embedded() -> MemoryEngine {
-        MemoryEngine::from_config(EngineConfig::default()).await.expect("engine")
+        MemoryEngine::from_config(EngineConfig::default())
+            .await
+            .expect("engine")
     }
 
     #[tokio::test]
