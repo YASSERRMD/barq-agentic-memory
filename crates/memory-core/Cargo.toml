@@ -23,6 +23,7 @@ memory-episodic.workspace = true
 memory-graph.workspace = true
 memory-procedural.workspace = true
 memory-prospective.workspace = true
+memory-lifecycle.workspace = true
 memory-conflict.workspace = true
 provider-local.workspace = true
 async-trait.workspace = true
