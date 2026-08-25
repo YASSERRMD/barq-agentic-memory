@@ -13,6 +13,7 @@ memory-provider-api.workspace = true
 chrono.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+futures = { version = "0.3.34", features = ["executor"] }
 
 [dev-dependencies]
 tokio.workspace = true

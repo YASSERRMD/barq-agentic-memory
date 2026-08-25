@@ -51,7 +51,11 @@ pub struct ScoreContext<'a> {
 }
 
 impl<'a> ScoreContext<'a> {
-    pub fn new(similarity: f32, now: chrono::DateTime<chrono::Utc>, half_life: &'a chrono::Duration) -> Self {
+    pub fn new(
+        similarity: f32,
+        now: chrono::DateTime<chrono::Utc>,
+        half_life: &'a chrono::Duration,
+    ) -> Self {
         Self {
             similarity: similarity.clamp(0.0, 1.0),
             now,
@@ -62,11 +66,7 @@ impl<'a> ScoreContext<'a> {
 }
 
 /// Computes the composite score for one candidate.
-pub fn score(
-    record: &MemoryRecord,
-    ctx: &ScoreContext<'_>,
-    weights: &ScoreWeights,
-) -> f32 {
+pub fn score(record: &MemoryRecord, ctx: &ScoreContext<'_>, weights: &ScoreWeights) -> f32 {
     let recency = recency_score(record.created_at, ctx.now, ctx.half_life);
     let importance = record.importance.clamp(0.0, 1.0);
     let confidence = record.confidence.clamp(0.0, 1.0);
@@ -80,7 +80,11 @@ pub fn score(
 }
 
 /// Exponential decay with configurable half-life.
-fn recency_score(created: chrono::DateTime<chrono::Utc>, now: chrono::DateTime<chrono::Utc>, half_life: &chrono::Duration) -> f32 {
+fn recency_score(
+    created: chrono::DateTime<chrono::Utc>,
+    now: chrono::DateTime<chrono::Utc>,
+    half_life: &chrono::Duration,
+) -> f32 {
     let age = (now - created).num_seconds().max(0) as f64;
     let half = half_life.num_seconds().max(1) as f64;
     let s = (-age / half).exp();
@@ -118,15 +122,10 @@ pub fn temporal_relevance(record: &MemoryRecord, at: chrono::DateTime<chrono::Ut
 mod tests {
     use super::*;
     use chrono::{Duration, Utc};
-    use memory_domain::{
-        MemoryContent, MemoryType, Provenance, RetentionPolicy,
-    };
+    use memory_domain::{MemoryContent, MemoryType, Provenance, RetentionPolicy};
 
     fn record_with(source: SourceKind, age_days: i64, importance: f32) -> MemoryRecord {
-        let mut r = MemoryRecord::new(
-            MemoryType::Semantic,
-            MemoryContent::from_text("candidate"),
-        );
+        let mut r = MemoryRecord::new(MemoryType::Semantic, MemoryContent::from_text("candidate"));
         r.created_at = Utc::now() - Duration::days(age_days);
         r.importance = importance;
         r.provenance = Provenance::now(source.clone());
