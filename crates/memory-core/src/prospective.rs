@@ -8,8 +8,7 @@ use crate::engine::MemoryEngine;
 use crate::requests::RememberRequest;
 use chrono::{DateTime, Utc};
 use memory_domain::{
-    MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope,
-    MemoryType,
+    MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope, MemoryType,
 };
 use memory_prospective::{
     EffectiveGoalState, GoalMetadata, GoalState, GoalView, validate_transition,
