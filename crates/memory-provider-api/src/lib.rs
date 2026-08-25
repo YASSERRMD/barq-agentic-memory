@@ -9,9 +9,7 @@ pub mod store;
 pub mod vector;
 pub mod working;
 
-pub use embedding::{cosine_similarity, EmbeddingProvider, HashingEmbedder};
+pub use embedding::{EmbeddingProvider, HashingEmbedder, cosine_similarity};
 pub use store::MemoryStoreProvider;
-pub use vector::{
-    MetadataFilter, VectorMatch, VectorProvider, VectorQuery, VectorRecord,
-};
+pub use vector::{MetadataFilter, VectorMatch, VectorProvider, VectorQuery, VectorRecord};
 pub use working::{SessionSnapshot, WorkingMemoryProvider, WorkingMemoryState};

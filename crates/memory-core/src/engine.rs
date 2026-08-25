@@ -93,13 +93,13 @@ impl MemoryEngine {
 
         let vector: Option<Arc<dyn VectorProvider>> = match config.vector.as_ref() {
             None => None,
-            Some(VectorStoreConfig::InMemory) => Some(Arc::new(InMemoryVectorStore::new(
-                &config.namespace,
-            ))),
-            #[cfg(feature = "pgvector")]
-            Some(VectorStoreConfig::PgVector { url }) => {
-                Some(Arc::new(provider_pgvector::PgVectorStore::connect(url, &config.namespace).await?))
+            Some(VectorStoreConfig::InMemory) => {
+                Some(Arc::new(InMemoryVectorStore::new(&config.namespace)))
             }
+            #[cfg(feature = "pgvector")]
+            Some(VectorStoreConfig::PgVector { url }) => Some(Arc::new(
+                provider_pgvector::PgVectorStore::connect(url, &config.namespace).await?,
+            )),
             #[cfg(not(feature = "pgvector"))]
             Some(VectorStoreConfig::PgVector { .. }) => {
                 return Err(MemoryError::Unsupported(
@@ -173,7 +173,8 @@ impl MemoryEngine {
         let (Some(vector), Some(embedder)) = (&self.vector, &self.embedder) else {
             return Ok(());
         };
-        let embedding = embedder.embed(std::slice::from_ref(&record.content.text))
+        let embedding = embedder
+            .embed(std::slice::from_ref(&record.content.text))
             .await?
             .remove(0);
         let mut vr = VectorRecord::new(
@@ -289,10 +290,7 @@ impl MemoryEngine {
             ));
         };
 
-        let embedding = embedder
-            .embed(&[query_text.into()])
-            .await?
-            .remove(0);
+        let embedding = embedder.embed(&[query_text.into()]).await?.remove(0);
 
         let filter = Self::scope_filter(scope);
         let candidates = vector
@@ -732,7 +730,10 @@ mod semantic_tests {
         assert!(engine.supports_semantic_recall());
 
         let atlas = engine
-            .remember(RememberRequest::new(MemoryType::Semantic, "Project Atlas uses PostgreSQL"))
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "Project Atlas uses PostgreSQL",
+            ))
             .await
             .expect("remember atlas");
         engine
@@ -756,28 +757,44 @@ mod semantic_tests {
     async fn forget_removes_from_semantic_recall() {
         let engine = engine_with_semantics().await;
         let r = engine
-            .remember(RememberRequest::new(MemoryType::Semantic, "quarterly revenue targets"))
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "quarterly revenue targets",
+            ))
             .await
             .expect("remember");
 
-        engine.forget(r.id, &MemoryScope::default()).await.expect("forget");
+        engine
+            .forget(r.id, &MemoryScope::default())
+            .await
+            .expect("forget");
 
         let hits = engine
             .recall_semantic("revenue targets", 5, &MemoryScope::default())
             .await
             .expect("recall");
-        assert!(hits.iter().all(|h| h.record.id != r.id), "tombstoned facts must not surface");
+        assert!(
+            hits.iter().all(|h| h.record.id != r.id),
+            "tombstoned facts must not surface"
+        );
     }
 
     #[tokio::test]
     async fn update_supersedes_vector_ownership() {
         let engine = engine_with_semantics().await;
         let v1 = engine
-            .remember(RememberRequest::new(MemoryType::Semantic, "Atlas uses MySQL"))
+            .remember(RememberRequest::new(
+                MemoryType::Semantic,
+                "Atlas uses MySQL",
+            ))
             .await
             .expect("remember");
         let v2 = engine
-            .update(UpdateRequest::content(v1.id, MemoryScope::default(), "Atlas uses PostgreSQL"))
+            .update(UpdateRequest::content(
+                v1.id,
+                MemoryScope::default(),
+                "Atlas uses PostgreSQL",
+            ))
             .await
             .expect("update");
 
@@ -822,7 +839,9 @@ mod semantic_tests {
 
     #[tokio::test]
     async fn semantic_recall_without_backend_is_unsupported() {
-        let engine = MemoryEngine::from_config(EngineConfig::default()).await.unwrap();
+        let engine = MemoryEngine::from_config(EngineConfig::default())
+            .await
+            .unwrap();
         assert!(!engine.supports_semantic_recall());
         let err = engine
             .recall_semantic("anything", 5, &MemoryScope::default())

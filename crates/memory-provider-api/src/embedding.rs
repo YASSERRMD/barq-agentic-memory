@@ -143,15 +143,18 @@ mod tests {
     #[tokio::test]
     async fn related_text_scores_higher_than_unrelated() {
         let e = HashingEmbedder::new(256);
-        let base = e.embed(&["project atlas uses postgresql".to_string()])
+        let base = e
+            .embed(&["project atlas uses postgresql".to_string()])
             .await
             .expect("embed")
             .remove(0);
-        let similar = e.embed(&["atlas uses postgresql daily".to_string()])
+        let similar = e
+            .embed(&["atlas uses postgresql daily".to_string()])
             .await
             .expect("embed")
             .remove(0);
-        let unrelated = e.embed(&["recipe for sourdough bread".to_string()])
+        let unrelated = e
+            .embed(&["recipe for sourdough bread".to_string()])
             .await
             .expect("embed")
             .remove(0);

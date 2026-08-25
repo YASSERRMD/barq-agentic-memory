@@ -7,7 +7,7 @@
 use async_trait::async_trait;
 use memory_domain::{MemoryError, MemoryId, MemoryResult};
 use memory_provider_api::{
-    cosine_similarity, VectorMatch, VectorProvider, VectorQuery, VectorRecord,
+    VectorMatch, VectorProvider, VectorQuery, VectorRecord, cosine_similarity,
 };
 use std::collections::HashMap;
 use std::sync::RwLock;
@@ -25,6 +25,11 @@ impl InMemoryVectorStore {
             namespace: namespace.into(),
             vectors: RwLock::new(HashMap::new()),
         }
+    }
+
+    /// Logical namespace of this instance.
+    pub fn namespace(&self) -> &str {
+        &self.namespace
     }
 
     /// Number of indexed vectors.
@@ -88,11 +93,15 @@ impl VectorProvider for InMemoryVectorStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use memory_provider_api::MetadataFilter;
     use memory_provider_api::{EmbeddingProvider, HashingEmbedder};
-use memory_provider_api::MetadataFilter;
 
     async fn embed(text: &str, dims: usize) -> Vec<f32> {
-        HashingEmbedder::new(dims).embed(&[text.to_string()]).await.expect("embed")[0].clone()
+        HashingEmbedder::new(dims)
+            .embed(&[text.to_string()])
+            .await
+            .expect("embed")[0]
+            .clone()
     }
 
     #[tokio::test]
@@ -121,7 +130,8 @@ use memory_provider_api::MetadataFilter;
                 .expect("upsert");
         }
 
-        let query_vec = e.embed(&["postgres database atlas".to_string()])
+        let query_vec = e
+            .embed(&["postgres database atlas".to_string()])
             .await
             .expect("embed")[0]
             .clone();
@@ -148,17 +158,11 @@ use memory_provider_api::MetadataFilter;
         let keep = MemoryId::generate();
         let drop_ = MemoryId::generate();
         index
-            .upsert(
-                &VectorRecord::new(keep, vec.clone(), "h", "1")
-                    .with_metadata("tenant", "acme"),
-            )
+            .upsert(&VectorRecord::new(keep, vec.clone(), "h", "1").with_metadata("tenant", "acme"))
             .await
             .expect("upsert");
         index
-            .upsert(
-                &VectorRecord::new(drop_, vec, "h", "1")
-                    .with_metadata("tenant", "globex"),
-            )
+            .upsert(&VectorRecord::new(drop_, vec, "h", "1").with_metadata("tenant", "globex"))
             .await
             .expect("upsert");
 
@@ -197,7 +201,12 @@ use memory_provider_api::MetadataFilter;
     async fn dimension_mismatch_is_excluded_not_panic() {
         let index = InMemoryVectorStore::new("ns");
         index
-            .upsert(&VectorRecord::new(MemoryId::generate(), vec![1.0, 0.0], "h", "1"))
+            .upsert(&VectorRecord::new(
+                MemoryId::generate(),
+                vec![1.0, 0.0],
+                "h",
+                "1",
+            ))
             .await
             .expect("upsert dim2");
 

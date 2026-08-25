@@ -57,6 +57,14 @@ impl PgVectorStore {
         .await
         .map_err(|e| MemoryError::storage("pgvector", e.to_string()))?;
 
+        sqlx::query(
+            "CREATE INDEX IF NOT EXISTS idx_memory_vectors_hnsw
+                ON memory_vectors USING hnsw (embedding vector_cosine_ops)",
+        )
+        .execute(&pool)
+        .await
+        .map_err(|e| MemoryError::storage("pgvector", e.to_string()))?;
+
         Ok(Self {
             pool,
             namespace: namespace.into(),
@@ -69,22 +77,17 @@ impl PgVectorStore {
     }
 
     fn literal(vector: &[f32]) -> String {
-        let body: Vec<String> =
-            vector.iter().map(|v| format!("{v}")).collect();
+        let body: Vec<String> = vector.iter().map(|v| format!("{v}")).collect();
         format!("[{}]", body.join(","))
     }
 
-    async fn stored_stamp(
-        &self,
-        memory_id: MemoryId,
-    ) -> MemoryResult<Option<(String, String)>> {
-        let row = sqlx::query(
-            "SELECT model, model_version FROM memory_vectors WHERE memory_id = $1",
-        )
-        .bind(memory_id.as_uuid())
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| MemoryError::storage("pgvector", e.to_string()))?;
+    async fn stored_stamp(&self, memory_id: MemoryId) -> MemoryResult<Option<(String, String)>> {
+        let row =
+            sqlx::query("SELECT model, model_version FROM memory_vectors WHERE memory_id = $1")
+                .bind(memory_id.as_uuid())
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| MemoryError::storage("pgvector", e.to_string()))?;
         Ok(row.map(|r| {
             (
                 r.get::<String, _>("model"),
@@ -171,19 +174,20 @@ impl VectorProvider for PgVectorStore {
         let literal = Self::literal(&q.embedding);
 
         let mut sql = sqlx::QueryBuilder::new(
-            "SELECT memory_id, 1 - (embedding <=> ",
+            // pgvector's `<=>` is cosine *distance* in [0, 2]; normalize
+            // to a similarity in [0, 1] where 1 = identical direction,
+            // matching the in-memory provider's scoring exactly.
+            "SELECT memory_id, 1 - ((embedding <=> ",
         );
         sql.push_bind(literal.clone());
-        sql.push("::vector) AS score FROM memory_vectors WHERE namespace = ");
+        sql.push("::vector) / 2) AS score FROM memory_vectors WHERE namespace = ");
         sql.push_bind(&self.namespace);
-        sql.push(" AND dimensions = ").push_bind(q.embedding.len() as i32);
+        sql.push(" AND dimensions = ")
+            .push_bind(q.embedding.len() as i32);
 
         for (k, v) in &q.filter.equals {
-            sql.push(format_args!(
-                " AND metadata->>{} = ",
-                quote_json_key(k)
-            ))
-            .push_bind(v);
+            sql.push(format_args!(" AND metadata->>{} = ", quote_json_key(k)))
+                .push_bind(v);
         }
 
         sql.push(" ORDER BY embedding <=> ").push_bind(literal);
@@ -194,7 +198,8 @@ impl VectorProvider for PgVectorStore {
             .into_iter()
             .map(|row| VectorMatch {
                 memory_id: MemoryId::from_uuid(row.get::<uuid::Uuid, _>("memory_id")),
-                score: row.get::<f32, _>("score"),
+                // `1 - distance` yields double precision; normalize to f32.
+                score: row.get::<f64, _>("score") as f32,
             })
             .collect())
     }
@@ -211,9 +216,7 @@ impl VectorProvider for PgVectorStore {
 
 fn pg_error(e: sqlx::Error) -> MemoryError {
     match &e {
-        sqlx::Error::Database(db) => {
-            MemoryError::storage("pgvector", db.message().to_string())
-        }
+        sqlx::Error::Database(db) => MemoryError::storage("pgvector", db.message().to_string()),
         _ => MemoryError::storage("pgvector", e.to_string()),
     }
 }
