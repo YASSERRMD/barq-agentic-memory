@@ -173,9 +173,13 @@ name = "memory-core"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "memory-domain",
  "memory-provider-api",
+ "provider-local",
  "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
