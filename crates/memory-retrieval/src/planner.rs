@@ -254,10 +254,7 @@ fn split_budget(steps: &mut [RetrievalStep], budget: u32) {
 }
 
 fn keywords_of(text: &str) -> Vec<String> {
-    text.split_whitespace()
-        .map(|w| w.trim_matches(|c: char| !c.is_alphanumeric()).to_string())
-        .filter(|w| w.len() > 2)
-        .collect()
+    crate::keywords::extract(text)
 }
 
 #[cfg(test)]
