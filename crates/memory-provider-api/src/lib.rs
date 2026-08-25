@@ -11,5 +11,7 @@ pub mod working;
 
 pub use embedding::{cosine_similarity, EmbeddingProvider, HashingEmbedder};
 pub use store::MemoryStoreProvider;
-pub use vector::{VectorMatch, VectorProvider, VectorQuery, VectorRecord};
+pub use vector::{
+    MetadataFilter, VectorMatch, VectorProvider, VectorQuery, VectorRecord,
+};
 pub use working::{SessionSnapshot, WorkingMemoryProvider, WorkingMemoryState};
