@@ -4,6 +4,7 @@
 //! defines the vocabulary (taxonomy, records, scopes, queries, errors,
 //! configuration) that the engine boundary is frozen around.
 
+pub mod config;
 pub mod content;
 pub mod error;
 pub mod id;
@@ -15,6 +16,7 @@ pub mod subject;
 pub mod taxonomy;
 pub mod temporal;
 
+pub use config::EngineConfig;
 pub use content::MemoryContent;
 pub use error::{MemoryError, MemoryResult};
 pub use id::MemoryId;
