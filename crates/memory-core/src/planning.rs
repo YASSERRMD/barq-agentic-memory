@@ -10,7 +10,7 @@ use memory_retrieval::{
 };
 
 use crate::engine::MemoryEngine;
-use memory_domain::{MemoryResult, MemoryScope};
+use memory_domain::MemoryResult;
 
 impl MemoryEngine {
     /// Compiles a recall request into a retrieval plan without running
@@ -47,7 +47,7 @@ mod planning_tests {
     use super::*;
     use crate::{RememberRequest, UpdateRequest};
     use memory_domain::config::{EmbeddingConfig, EngineConfig, VectorStoreConfig};
-    use memory_domain::{MemoryError, MemoryScopeBuilder, MemoryType};
+    use memory_domain::{MemoryError, MemoryScope, MemoryScopeBuilder, MemoryType};
 
     #[tokio::test]
     async fn plans_reflect_available_backends() {
