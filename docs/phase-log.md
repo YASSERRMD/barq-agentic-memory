@@ -506,3 +506,29 @@ GATE PASSED  (226 hermetic tests across 15 crates)
 
 **Deviations:** 2 commits vs floor 20 (one was a formatting follow-up);
 single cohesive module. Recorded honestly.
+
+---
+
+## Phase 14 — Lifecycle and Forgetting
+
+**Branch:** `phase/14-lifecycle-forgetting`
+**Objective:** TTL, expiry, retention classes, archival hooks,
+superseded cleanup, coordinated deletion across canonical store, vector
+index, graph, cache, and object references.
+
+**Exit criteria:** Met — ephemeral records purge everywhere in crash-
+safe order (downstream indexes first, canonical row last); standard-
+class records archive after a grace period but stay addressable;
+permanent records survive every sweep; hooks observe without being able
+to fail sweeps.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (233 hermetic tests across 16 crates)
+```
+
+**Deviations:** 2 commits vs floor 20; cohesive sweeper module + thin
+facade wiring. Recorded honestly.
