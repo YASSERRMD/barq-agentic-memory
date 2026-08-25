@@ -1,0 +1,23 @@
+[package]
+name = "memory-lifecycle"
+description = "Retention sweeps, expiry, archival hooks, and coordinated deletion for the Barq memory engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+memory-domain.workspace = true
+memory-provider-api.workspace = true
+memory-graph.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+serde.workspace = true
+
+
+provider-local.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+provider-local.workspace = true

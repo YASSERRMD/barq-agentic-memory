@@ -881,6 +881,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "memory-lifecycle"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "memory-domain",
+ "memory-graph",
+ "memory-provider-api",
+ "provider-local",
+ "serde",
+ "tokio",
+]
+
+[[package]]
 name = "memory-procedural"
 version = "0.1.0"
 dependencies = [
