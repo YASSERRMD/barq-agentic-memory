@@ -4,6 +4,7 @@ members = [
     "crates/memory-domain",
     "crates/memory-provider-api",
     "crates/memory-core",
+    "crates/providers/provider-local",
 ]
 
 [workspace.package]
