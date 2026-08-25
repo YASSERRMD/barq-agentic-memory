@@ -342,3 +342,38 @@ GATE PASSED  (165 hermetic tests across 9 crates)
 
 **Deviations:** 3 commits vs floor 20; single cohesive crate plus a
 thin engine integration layer. Recorded honestly.
+
+---
+
+## Phase 08 — Deduplication
+
+**Branch:** `phase/08-deduplication`
+**Objective:** Signals (canonical key, exact hash, normalized text hash,
+semantic similarity, entity overlap, temporal compatibility) feeding
+ADD / IGNORE / MERGE / LINK / REVIEW decisions. Never embedding
+similarity alone.
+
+**Exit criteria:** Met — remember() with dedup_enabled returns the
+original record for byte-identical and reworded duplicates, merges
+same-subject high-similarity restatements through the supersession
+path, quarantines near-threshold ambiguity, and never merges across
+subjects or into closed historical eras.
+
+**Key design points**
+- Similarity is one signal among six; same-subject structure is a hard
+  precondition for Merge.
+- Normalization strips punctuation/case/whitespace before hashing.
+- Merge targets must still be temporally open; history stays put.
+- Review quarantines instead of guessing.
+- Semantic signal computed up front so the cascade is pure/sync.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (184 hermetic tests across 10 crates)
+```
+
+**Deviations:** 3 commits vs floor 20; cohesive crate + engine wiring.
+Recorded honestly.
