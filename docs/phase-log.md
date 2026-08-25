@@ -199,3 +199,19 @@ stored revision, and no update is lost.
 **Deviations:** 3 commits — cohesive provider + trait extension; the
 session-conflict error refactor and CAS contract landed as one unit by
 design rather than padding further.
+
+---
+
+## Phase 04 — Vector Provider
+
+**Branch:** `phase/04-vector-provider`
+**Objective:** Semantic similarity retrieval: embedding abstraction with
+model/version stamps, pgvector provider, in-memory vector fallback,
+top-K search, metadata filtering, update/delete synchronization between
+canonical store and vector index. Exit criterion: vector providers are
+replaceable without changing the engine API.
+
+**Gate output:** _recorded at phase close_
+
+**Live-pgvector verification:** _recorded at phase close_ (opt-in tests
+vs `pgvector/pgvector:pg16` Docker container on port 5434)
