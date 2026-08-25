@@ -7,6 +7,7 @@
 pub mod content;
 pub mod id;
 pub mod provenance;
+pub mod record;
 pub mod scope;
 pub mod subject;
 pub mod taxonomy;
@@ -15,6 +16,7 @@ pub mod temporal;
 pub use content::MemoryContent;
 pub use id::MemoryId;
 pub use provenance::{Provenance, RetentionClass, RetentionPolicy, SourceKind};
+pub use record::MemoryRecord;
 pub use scope::MemoryScope;
 pub use subject::MemorySubject;
 pub use taxonomy::{MemoryStatus, MemoryType};
