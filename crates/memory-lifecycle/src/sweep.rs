@@ -69,7 +69,11 @@ impl RetentionSweeper {
     /// - Ephemeral/Session past expiry: purged from every representation.
     /// - Standard past expiry + grace: archived (status flip), kept.
     /// - Permanent: never touched.
-    pub async fn sweep(&self, scope: &MemoryScope, now: DateTime<Utc>) -> MemoryResult<SweepReport> {
+    pub async fn sweep(
+        &self,
+        scope: &MemoryScope,
+        now: DateTime<Utc>,
+    ) -> MemoryResult<SweepReport> {
         // Candidates: anything retention could touch. History mode so
         // already-retired records are still purgeable when their
         // ephemeral TTL lapsed long ago.
@@ -84,9 +88,11 @@ impl RetentionSweeper {
         };
         let candidates = match self.providers.store.query(&query).await {
             Ok(hits) => hits,
-            Err(MemoryError::Unsupported(_)) => return Err(MemoryError::Unsupported(
-                "attached store cannot list candidates for sweeps".into(),
-            )),
+            Err(MemoryError::Unsupported(_)) => {
+                return Err(MemoryError::Unsupported(
+                    "attached store cannot list candidates for sweeps".into(),
+                ));
+            }
             Err(other) => return Err(other),
         };
 
@@ -94,10 +100,15 @@ impl RetentionSweeper {
         for record in candidates {
             let Some(expires_at) = record.retention.expires_at else {
                 if record.retention.class == RetentionClass::Permanent
-                    || matches!(record.retention.class, RetentionClass::Standard | RetentionClass::Session)
+                    || matches!(
+                        record.retention.class,
+                        RetentionClass::Standard | RetentionClass::Session
+                    )
                 {
                     // No deadline yet: nothing due. Permanent counted for visibility.
-                    if record.retention.class == RetentionClass::Permanent && record.is_valid_at(now) {
+                    if record.retention.class == RetentionClass::Permanent
+                        && record.is_valid_at(now)
+                    {
                         report.skipped += 1;
                     }
                 }
@@ -114,7 +125,9 @@ impl RetentionSweeper {
                     report.purged.push(record.id);
                 }
                 RetentionClass::Standard => {
-                    if now >= expires_at + ARCHIVE_GRACE && record.status == memory_domain::MemoryStatus::Active {
+                    if now >= expires_at + ARCHIVE_GRACE
+                        && record.status == memory_domain::MemoryStatus::Active
+                    {
                         self.run_hooks(&record).await;
                         let mut archived = record.clone();
                         archived.status = memory_domain::MemoryStatus::Archived;
@@ -144,11 +157,7 @@ impl RetentionSweeper {
     /// Order matters: downstream indexes first, canonical row last, so
     /// a crash mid-sweep can strand an index entry but never a row
     /// pointing at nothing.
-    pub async fn coordinate_delete(
-        &self,
-        id: &MemoryId,
-        scope: &MemoryScope,
-    ) -> MemoryResult<()> {
+    pub async fn coordinate_delete(&self, id: &MemoryId, scope: &MemoryScope) -> MemoryResult<()> {
         if let Some(vector) = &self.providers.vector {
             vector.delete(id).await?;
         }
@@ -163,9 +172,7 @@ impl RetentionSweeper {
 mod tests {
     use super::*;
     use chrono::Duration;
-    use memory_domain::{
-        MemoryContent, MemoryScopeBuilder, MemoryType, RetentionPolicy,
-    };
+    use memory_domain::{MemoryContent, MemoryScopeBuilder, MemoryType, RetentionPolicy};
     use provider_local::{InMemoryStore, InMemoryVectorStore};
 
     fn expiring(class: RetentionClass, seconds: i64) -> RetentionPolicy {
@@ -186,7 +193,12 @@ mod tests {
         r.scope = MemoryScopeBuilder::new().tenant("acme").build();
         store.put(&r).await.unwrap();
         vectors
-            .upsert(&memory_provider_api::VectorRecord::new(r.id, vec![0.1], "m", "1"))
+            .upsert(&memory_provider_api::VectorRecord::new(
+                r.id,
+                vec![0.1],
+                "m",
+                "1",
+            ))
             .await
             .unwrap();
 
@@ -195,10 +207,19 @@ mod tests {
             vector: Some(vectors.clone()),
             graph: Some(graph.clone()),
         });
-        let report = sweeper.sweep(&MemoryScope::default(), Utc::now()).await.unwrap();
+        let report = sweeper
+            .sweep(&MemoryScope::default(), Utc::now())
+            .await
+            .unwrap();
 
         assert_eq!(report.purged, vec![r.id]);
-        assert!(store.get(&r.id, &MemoryScope::default()).await.unwrap().is_none());
+        assert!(
+            store
+                .get(&r.id, &MemoryScope::default())
+                .await
+                .unwrap()
+                .is_none()
+        );
         // Coordinated deletion cleared the index too.
         let hits = vectors
             .search(&memory_provider_api::VectorQuery {
@@ -226,20 +247,38 @@ mod tests {
             vector: None,
             graph: None,
         });
-        let report = sweeper.sweep(&MemoryScope::default(), Utc::now()).await.unwrap();
+        let report = sweeper
+            .sweep(&MemoryScope::default(), Utc::now())
+            .await
+            .unwrap();
         assert_eq!(report.skipped, 1);
         assert_eq!(report.acted_on(), 0);
-        assert!(store.get(&permanent.id, &MemoryScope::default()).await.unwrap().is_some());
+        assert!(
+            store
+                .get(&permanent.id, &MemoryScope::default())
+                .await
+                .unwrap()
+                .is_some()
+        );
     }
 
     #[tokio::test]
     async fn standard_records_archive_only_after_grace() {
         let store = Arc::new(InMemoryStore::new("std"));
 
-        let fresh_expired = MemoryRecord::new(MemoryType::Semantic, MemoryContent::from_text("recently expired"))
-            .with_retention(expiring(RetentionClass::Standard, -60));
-        let long_expired = MemoryRecord::new(MemoryType::Semantic, MemoryContent::from_text("long expired"))
-            .with_retention(expiring(RetentionClass::Standard, -(ARCHIVE_GRACE.num_seconds() * 2)));
+        let fresh_expired = MemoryRecord::new(
+            MemoryType::Semantic,
+            MemoryContent::from_text("recently expired"),
+        )
+        .with_retention(expiring(RetentionClass::Standard, -60));
+        let long_expired = MemoryRecord::new(
+            MemoryType::Semantic,
+            MemoryContent::from_text("long expired"),
+        )
+        .with_retention(expiring(
+            RetentionClass::Standard,
+            -(ARCHIVE_GRACE.num_seconds() * 2),
+        ));
         store.put(&fresh_expired).await.unwrap();
         store.put(&long_expired).await.unwrap();
 
@@ -248,12 +287,22 @@ mod tests {
             vector: None,
             graph: None,
         });
-        let report = sweeper.sweep(&MemoryScope::default(), Utc::now()).await.unwrap();
+        let report = sweeper
+            .sweep(&MemoryScope::default(), Utc::now())
+            .await
+            .unwrap();
 
         assert!(report.archived.contains(&long_expired.id));
-        assert!(!report.archived.contains(&fresh_expired.id), "grace protects fresh expiries");
+        assert!(
+            !report.archived.contains(&fresh_expired.id),
+            "grace protects fresh expiries"
+        );
 
-        let got = store.get(&long_expired.id, &MemoryScope::default()).await.unwrap().unwrap();
+        let got = store
+            .get(&long_expired.id, &MemoryScope::default())
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(got.status, memory_domain::MemoryStatus::Archived);
         assert!(got.status.is_retrievable(), "archived stays addressable");
     }
@@ -270,8 +319,10 @@ mod tests {
             vector: None,
             graph: None,
         });
-        let report = sweeper.sweep(&MemoryScope::default(), Utc::now()).await.unwrap();
+        let report = sweeper
+            .sweep(&MemoryScope::default(), Utc::now())
+            .await
+            .unwrap();
         assert_eq!(report.acted_on(), 0);
     }
-
 }

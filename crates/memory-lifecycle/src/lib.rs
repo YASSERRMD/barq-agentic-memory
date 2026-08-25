@@ -9,4 +9,4 @@ pub mod hooks;
 pub mod sweep;
 
 pub use hooks::{ArchivalHook, LogArchiveHook};
-pub use sweep::{SweepReport, RetentionSweeper};
+pub use sweep::{LifecycleProviders, RetentionSweeper, SweepReport};
