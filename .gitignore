@@ -1,0 +1,63 @@
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor & IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+.helix/
+
+# Rust / Cargo
+/target/
+/**/target/
+**/*.rs.bk
+*.rs~
+
+# Go
+bin/
+*.exe
+*.exe?
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/cli/dhow
+/dhow
+
+# Secrets, Keys, and Certificates
+*.key
+*.pub
+*.pem
+*.sec
+*.asc
+*.priv
+
+# Test & Coverage Outputs
+*.profraw
+*.profdata
+coverage/
+*.coverprofile
+
+# Environment & Logs
+.env
+.env.*
+!.env.example
+*.log
+tmp/
+temp/
+
+# Release artifacts and the identity that signs them. The key is a secret and
+# the artifacts are generated; neither belongs in the tree.
+/dist/
+/release.key
+/release.pub
