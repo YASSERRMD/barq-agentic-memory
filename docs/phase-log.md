@@ -377,3 +377,29 @@ GATE PASSED  (184 hermetic tests across 10 crates)
 
 **Deviations:** 3 commits vs floor 20; cohesive crate + engine wiring.
 Recorded honestly.
+
+---
+
+## Phase 09 — Conflict Resolution and Temporal Truth
+
+**Branch:** `phase/09-conflict-resolution`
+**Objective:** Contradiction detection, supersession, valid-from/to,
+source authority, confidence comparison, review state. States:
+CONSISTENT / DUPLICATE / SUPERSEDES / CONTRADICTS / AMBIGUOUS /
+REVIEW_REQUIRED. Never silently destroy older facts.
+
+**Exit criteria:** Met — negations retire predecessors through window-
+closing supersession (records survive as history); authority outranks
+confidence; ambiguous weak claims quarantine; closed windows never
+absorb new statements.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (193 hermetic tests across 11 crates)
+```
+
+**Deviations:** 3 commits vs floor 20; cohesive crate + engine wiring.
+Recorded honestly.
