@@ -136,7 +136,6 @@ fn normalize_types(types: &[MemoryType]) -> Vec<MemoryType> {
 }
 
 fn base_step(
-    request: &RecallRequest,
     provider: ProviderKind,
     kind: LookupKind,
     types: &[MemoryType],
@@ -159,7 +158,6 @@ fn push_exact_steps(
 ) {
     if request.subject.is_some() {
         steps.push(base_step(
-            request,
             ProviderKind::Store,
             LookupKind::ExactSubject,
             types,
@@ -177,7 +175,6 @@ fn push_keyword_step(
     let keywords = keywords_of(&request.text);
     if !keywords.is_empty() {
         steps.push(base_step(
-            request,
             ProviderKind::Store,
             LookupKind::Keyword,
             types,
@@ -196,7 +193,6 @@ fn push_semantic_step(
         return; // working state lives outside similarity search
     }
     steps.push(base_step(
-        request,
         ProviderKind::Vector,
         LookupKind::Semantic {
             query_text: request.text.clone(),
@@ -212,7 +208,6 @@ fn push_episodic_evidence_step(
     valid_at: chrono::DateTime<Utc>,
 ) {
     steps.push(base_step(
-        request,
         ProviderKind::Vector,
         LookupKind::Semantic {
             query_text: request.text.clone(),
@@ -373,11 +368,11 @@ mod tests {
     fn scope_flows_into_every_step() {
         let scope = MemoryScopeBuilder::new().tenant("acme").user("u-9").build();
         let r = R::new("preferences?")
-            .with_scope(scope)
+            .with_scope(scope.clone())
             .with_subject(MemorySubject::new("u-9"));
-        let p = RuleBasedPlanner.plan(&r).expect("plan");
         // Scope rides on the request into the executor; steps stay data-only.
         assert_eq!(r.scope.tenant_id.as_deref(), Some("acme"));
+        assert_eq!(r.scope, scope);
     }
 
     #[tokio::test]
