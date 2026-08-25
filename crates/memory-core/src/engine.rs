@@ -12,6 +12,8 @@ use memory_provider_api::{MemoryStoreProvider, WorkingMemoryProvider, WorkingMem
 use provider_local::{InMemoryStore, InProcessWorkingStore, LocalStore};
 #[cfg(feature = "postgres")]
 use provider_postgres::PostgresStore;
+#[cfg(feature = "redis")]
+use provider_redis::RedisWorkingStore;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -63,9 +65,14 @@ impl MemoryEngine {
             None | Some(WorkingStoreConfig::InProcess) => {
                 Arc::new(InProcessWorkingStore::new(&config.namespace))
             }
+            #[cfg(feature = "redis")]
+            Some(WorkingStoreConfig::Redis { url }) => {
+                Arc::new(RedisWorkingStore::connect(url, &config.namespace).await?)
+            }
+            #[cfg(not(feature = "redis"))]
             Some(WorkingStoreConfig::Redis { .. }) => {
                 return Err(MemoryError::Unsupported(
-                    "redis working store lands in phase 03".into(),
+                    "built without the 'redis' feature".into(),
                 ));
             }
         };
@@ -234,6 +241,90 @@ impl MemoryEngine {
     /// Drops session state immediately.
     pub async fn clear_working_state(&self, session_id: &str) -> MemoryResult<()> {
         self.working.delete(session_id).await
+    }
+
+    /// Appends an observation to the session snapshot via revision-safe
+    /// compare-and-set, retrying on concurrent writers.
+    pub async fn working_push_observation(
+        &self,
+        session_id: &str,
+        observation: impl Into<String>,
+    ) -> MemoryResult<WorkingMemoryState> {
+        let observation = observation.into();
+        self.working_mutate(session_id, move |snap| {
+            snap.push_observation(observation.clone());
+            Ok(())
+        })
+        .await
+    }
+
+    /// Records a durable checkpoint reference on the session.
+    pub async fn working_add_checkpoint_ref(
+        &self,
+        session_id: &str,
+        reference: impl Into<String>,
+    ) -> MemoryResult<WorkingMemoryState> {
+        let reference = reference.into();
+        self.working_mutate(session_id, move |snap| {
+            snap.add_checkpoint_ref(reference.clone());
+            Ok(())
+        })
+        .await
+    }
+
+    /// Reads the typed session snapshot, if any.
+    pub async fn working_snapshot(
+        &self,
+        session_id: &str,
+    ) -> MemoryResult<Option<memory_provider_api::SessionSnapshot>> {
+        Ok(self
+            .working
+            .get(session_id)
+            .await?
+            .map(|state| memory_provider_api::SessionSnapshot::from_state_data(&state.data)))
+    }
+
+    /// Revision-safe mutation loop: read → apply → CAS, retrying a
+    /// bounded number of times when another writer wins the race.
+    async fn working_mutate<F>(
+        &self,
+        session_id: &str,
+        mutate: F,
+    ) -> MemoryResult<WorkingMemoryState>
+    where
+        F: Fn(&mut memory_provider_api::SessionSnapshot) -> MemoryResult<()>,
+    {
+        const MAX_RACES: usize = 5;
+        for _ in 0..MAX_RACES {
+            let Some(current) = self.working.get(session_id).await? else {
+                return Err(MemoryError::SessionNotFound {
+                    session_id: session_id.to_string(),
+                });
+            };
+            let mut snap = memory_provider_api::SessionSnapshot::from_state_data(&current.data);
+            mutate(&mut snap)?;
+            let mut data = current.data.clone();
+            snap.apply_to(&mut data);
+
+            match self
+                .working
+                .compare_and_set(
+                    session_id,
+                    current.revision,
+                    data,
+                    self.config.working_memory_ttl,
+                )
+                .await
+            {
+                Ok(next) => return Ok(next),
+                Err(MemoryError::SessionConflict { .. }) => continue, // raced; retry
+                Err(other) => return Err(other),
+            }
+        }
+        Err(MemoryError::storage(
+            "redis",
+            format!("session '{session_id}' contended beyond {MAX_RACES} retries"),
+        ))
     }
 }
 

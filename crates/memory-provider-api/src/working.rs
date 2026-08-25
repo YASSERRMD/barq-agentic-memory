@@ -160,7 +160,10 @@ impl SessionSnapshot {
             ("checkpoint_refs", &self.checkpoint_refs),
         ];
         for (key, list) in entries {
-            map.insert(key.to_string(), serde_json::to_value(list).expect("serializable"));
+            map.insert(
+                key.to_string(),
+                serde_json::to_value(list).expect("serializable"),
+            );
         }
     }
 
@@ -260,10 +263,7 @@ mod tests {
             async fn set(&self, _s: &WorkingMemoryState, _ttl: Duration) -> MemoryResult<()> {
                 Ok(())
             }
-            async fn get(
-                &self,
-                _session_id: &str,
-            ) -> MemoryResult<Option<WorkingMemoryState>> {
+            async fn get(&self, _session_id: &str) -> MemoryResult<Option<WorkingMemoryState>> {
                 Ok(None)
             }
             async fn delete(&self, _session_id: &str) -> MemoryResult<()> {

@@ -13,6 +13,12 @@ echo "== cargo clippy -D warnings =="
 cargo clippy --workspace --all-targets --quiet -- -D warnings
 echo "clippy: OK"
 
+echo "== cargo check (feature combos) =="
+cargo check --workspace --all-targets --quiet \
+    --features memory-core/postgres,memory-core/redis
+cargo check --workspace --all-targets --quiet
+echo "features: OK"
+
 echo "== cargo test =="
 cargo test --workspace --quiet
 echo "test: OK"
