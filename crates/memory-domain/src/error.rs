@@ -8,7 +8,7 @@ use crate::id::MemoryId;
 use thiserror::Error;
 
 /// Errors produced by the memory engine and its providers.
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[non_exhaustive]
 pub enum MemoryError {
     /// No record with the given id was visible in the requested scope.
