@@ -26,7 +26,7 @@ async fn memories_survive_engine_restart() {
             store: StoreConfig::Local { path: path.clone() },
             ..EngineConfig::default()
         };
-        let engine = MemoryEngine::from_config(config).expect("engine");
+        let engine = MemoryEngine::from_config(config).await.expect("engine");
 
         let saved = engine
             .remember(
@@ -46,7 +46,7 @@ async fn memories_survive_engine_restart() {
             store: StoreConfig::Local { path },
             ..EngineConfig::default()
         };
-        let engine = MemoryEngine::from_config(config).expect("engine restart");
+        let engine = MemoryEngine::from_config(config).await.expect("engine restart");
 
         let hits = engine
             .search(MemoryQuery::default().with_text("postgresql"))
@@ -74,9 +74,9 @@ async fn namespaces_partition_one_file_between_tenants() {
 
     let path_a = dir.join("shared.redb");
     let tenant_a =
-        MemoryEngine::from_config(config_for("tenant-a", path_a.clone())).expect("engine a");
+        MemoryEngine::from_config(config_for("tenant-a", path_a.clone())).await.expect("engine a");
     let tenant_b =
-        MemoryEngine::from_config(config_for("tenant-b", path_a)).expect("engine b (same file)");
+        MemoryEngine::from_config(config_for("tenant-b", path_a)).await.expect("engine b (same file)");
 
     tenant_a
         .remember(RememberRequest::new(MemoryType::Semantic, "a-only fact"))
@@ -112,7 +112,7 @@ async fn full_lifecycle_flow_over_local_store() {
         },
         ..EngineConfig::default()
     };
-    let engine = MemoryEngine::from_config(config).expect("engine");
+    let engine = MemoryEngine::from_config(config).await.expect("engine");
 
     let v1 = engine
         .remember(RememberRequest::new(

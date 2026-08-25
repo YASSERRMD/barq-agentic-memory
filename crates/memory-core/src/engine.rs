@@ -9,6 +9,8 @@ use memory_domain::{
     EngineConfig, MemoryError, MemoryId, MemoryQuery, MemoryRecord, MemoryResult, MemoryScope,
 };
 use memory_provider_api::{MemoryStoreProvider, WorkingMemoryProvider, WorkingMemoryState};
+#[cfg(feature = "postgres")]
+use provider_postgres::PostgresStore;
 use provider_local::{InMemoryStore, InProcessWorkingStore, LocalStore};
 use std::sync::Arc;
 use std::time::Duration;
@@ -27,18 +29,29 @@ pub struct MemoryEngine {
 impl MemoryEngine {
     /// Assembles an engine from configuration.
     ///
-    /// Only embedded backends exist in Phase 1; configured remote
-    /// backends fail fast with a clear error instead of silently
-    /// downgrading to local storage.
-    pub fn from_config(config: EngineConfig) -> MemoryResult<Self> {
+    /// Only embedded backends existed in Phase 1; PostgreSQL joins in
+    /// Phase 2 behind the `postgres` feature.
+    pub async fn from_config(config: EngineConfig) -> MemoryResult<Self> {
         config.validated()?;
 
         let store: Arc<dyn MemoryStoreProvider> = match &config.store {
             StoreConfig::Memory => Arc::new(InMemoryStore::new(&config.namespace)),
             StoreConfig::Local { path } => Arc::new(LocalStore::open(path, &config.namespace)?),
+            #[cfg(feature = "postgres")]
+            StoreConfig::Postgres { url, max_connections } => {
+                let pool = sqlx::pool::PoolOptions::<sqlx::Postgres>::new()
+                    .max_connections(*max_connections)
+                    .connect(url)
+                    .await
+                    .map_err(|e| {
+                        memory_domain::MemoryError::unavailable("postgres", e.to_string())
+                    })?;
+                Arc::new(PostgresStore::with_pool(pool, &config.namespace).await?)
+            }
+            #[cfg(not(feature = "postgres"))]
             StoreConfig::Postgres { .. } => {
                 return Err(MemoryError::Unsupported(
-                    "postgres store lands in phase 02".into(),
+                    "built without the 'postgres' feature".into(),
                 ));
             }
         };
@@ -226,13 +239,13 @@ mod tests {
     use super::*;
     use memory_domain::{MemoryScopeBuilder, MemoryType, RetentionPolicy};
 
-    fn embedded() -> MemoryEngine {
-        MemoryEngine::from_config(EngineConfig::default()).expect("engine")
+    async fn embedded() -> MemoryEngine {
+        MemoryEngine::from_config(EngineConfig::default()).await.expect("engine")
     }
 
     #[tokio::test]
     async fn remember_then_search_roundtrip() {
-        let engine = embedded();
+        let engine = embedded().await;
         let saved = engine
             .remember(RememberRequest::new(
                 MemoryType::Semantic,
@@ -251,7 +264,7 @@ mod tests {
 
     #[tokio::test]
     async fn update_creates_supersession_chain() {
-        let engine = embedded();
+        let engine = embedded().await;
         let v1 = engine
             .remember(RememberRequest::new(
                 MemoryType::Semantic,
@@ -298,7 +311,7 @@ mod tests {
 
     #[tokio::test]
     async fn forget_tombstones_but_keeps_record_addressable() {
-        let engine = embedded();
+        let engine = embedded().await;
         let r = engine
             .remember(RememberRequest::new(MemoryType::Episodic, "one-off event"))
             .await
@@ -327,7 +340,7 @@ mod tests {
 
     #[tokio::test]
     async fn purge_physically_removes() {
-        let engine = embedded();
+        let engine = embedded().await;
         let r = engine
             .remember(RememberRequest::new(MemoryType::Working, "scratch"))
             .await
@@ -347,7 +360,7 @@ mod tests {
 
     #[tokio::test]
     async fn scope_isolation_hides_foreign_memories() {
-        let engine = embedded();
+        let engine = embedded().await;
         let acme = MemoryScopeBuilder::new().tenant("acme").build();
         let globex = MemoryScopeBuilder::new().tenant("globex").build();
 
@@ -380,7 +393,7 @@ mod tests {
             working_memory_ttl: Duration::from_millis(30),
             ..EngineConfig::default()
         };
-        let engine = MemoryEngine::from_config(config).expect("engine");
+        let engine = MemoryEngine::from_config(config).await.expect("engine");
 
         engine
             .set_working_state("s-1", serde_json::json!({"goal": "deploy"}))
@@ -393,24 +406,28 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn postgres_config_fails_fast_in_phase_1() {
+    async fn unreachable_postgres_fails_fast_with_clear_error() {
         let config = EngineConfig {
             store: StoreConfig::Postgres {
-                url: "postgres://localhost/mem".into(),
-                max_connections: 4,
+                url: "postgres://localhost:59999/none".into(),
+                max_connections: 1,
             },
             ..EngineConfig::default()
         };
-        let err = match MemoryEngine::from_config(config) {
+        let err = match MemoryEngine::from_config(config).await {
             Err(e) => e,
-            Ok(_) => panic!("postgres must not assemble before phase 02"),
+            Ok(_) => panic!("unreachable backend must not assemble"),
         };
-        assert!(matches!(err, MemoryError::Unsupported(_)));
+        // Without the feature: Unsupported. With it: ProviderUnavailable.
+        assert!(matches!(
+            err,
+            MemoryError::Unsupported(_) | MemoryError::ProviderUnavailable { .. }
+        ));
     }
 
     #[tokio::test]
     async fn retention_policy_flows_through_remember() {
-        let engine = embedded();
+        let engine = embedded().await;
         let expiry = chrono::Utc::now() + chrono::Duration::hours(1);
         let r = engine
             .remember(
@@ -424,7 +441,7 @@ mod tests {
 
     #[tokio::test]
     async fn content_validation_surfaces_before_storage() {
-        let engine = embedded();
+        let engine = embedded().await;
         let err = engine
             .remember(RememberRequest::new(MemoryType::Semantic, ""))
             .await
