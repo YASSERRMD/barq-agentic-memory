@@ -5,6 +5,7 @@
 //! configuration) that the engine boundary is frozen around.
 
 pub mod content;
+pub mod error;
 pub mod id;
 pub mod provenance;
 pub mod record;
@@ -14,6 +15,7 @@ pub mod taxonomy;
 pub mod temporal;
 
 pub use content::MemoryContent;
+pub use error::{MemoryError, MemoryResult};
 pub use id::MemoryId;
 pub use provenance::{Provenance, RetentionClass, RetentionPolicy, SourceKind};
 pub use record::MemoryRecord;
