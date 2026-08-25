@@ -10,6 +10,7 @@ pub mod provenance;
 pub mod scope;
 pub mod subject;
 pub mod taxonomy;
+pub mod temporal;
 
 pub use content::MemoryContent;
 pub use id::MemoryId;
