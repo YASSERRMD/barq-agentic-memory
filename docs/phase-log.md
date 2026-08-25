@@ -298,3 +298,19 @@ filter -> remove superseded -> score -> rerank -> return.
 plan and returns deterministically ranked, canonically-hydrated results.
 
 **Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (157 hermetic tests across 8 crates)
+```
+
+**Live verification:** none required — executor logic fully covered by
+deterministic unit and engine-level integration tests (hybrid ranking,
+supersession precedence, end-to-end scope isolation).
+
+**Deviations:** 4 commits vs floor 20; the phase is one cohesive
+pipeline (scoring module, executor module, engine wiring) where further
+splitting would break per-commit compilability. Recorded honestly.
