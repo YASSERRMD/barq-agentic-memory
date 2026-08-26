@@ -38,3 +38,8 @@ provider-pgvector = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio.workspace = true
+criterion = "0.5"
+
+[[bench]]
+name = "engine"
+harness = false
