@@ -88,9 +88,15 @@ mod tests {
         let q = MemoryQuery::default().with_text("slack");
         assert!(!matches_query(&record(), &q));
         let q = MemoryQuery::default().with_text("email contact customer");
-        assert!(matches_query(&record(), &q), "non-contiguous words AND together");
+        assert!(
+            matches_query(&record(), &q),
+            "non-contiguous words AND together"
+        );
         let q = MemoryQuery::default().with_text("email slack");
-        assert!(!matches_query(&record(), &q), "one missing word fails the whole filter");
+        assert!(
+            !matches_query(&record(), &q),
+            "one missing word fails the whole filter"
+        );
     }
 
     #[test]
