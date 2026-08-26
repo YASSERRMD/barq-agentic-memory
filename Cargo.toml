@@ -13,6 +13,7 @@ members = [
     "crates/providers/provider-redis",
     "crates/providers/provider-pgvector",
     "crates/memory-retrieval",
+    "crates/memory-server",
     "crates/memory-classifier",
     "crates/memory-dedup",
     "crates/memory-conflict",
@@ -39,6 +40,7 @@ provider-postgres = { path = "crates/providers/provider-postgres" }
 provider-redis = { path = "crates/providers/provider-redis" }
 memory-retrieval = { path = "crates/memory-retrieval" }
 memory-core = { path = "crates/memory-core" }
+memory-server = { path = "crates/memory-server" }
 memory-classifier = { path = "crates/memory-classifier" }
 memory-dedup = { path = "crates/memory-dedup" }
 memory-conflict = { path = "crates/memory-conflict" }

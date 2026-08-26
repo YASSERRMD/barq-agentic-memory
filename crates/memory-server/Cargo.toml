@@ -1,0 +1,22 @@
+[package]
+name = "memory-server"
+description = "REST server mode for the Barq memory engine (Axum)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+memory-core.workspace = true
+memory-domain.workspace = true
+memory-retrieval.workspace = true
+axum = { version = "0.8", features = ["json"] }
+tokio = { workspace = true }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
