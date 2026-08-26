@@ -724,3 +724,14 @@ as the profiling evidence the blueprint requires before building them.
 
 **Deviations:** 3 commits vs floor 20; benchmark suite + recorded
 baseline. Recorded honestly.
+
+---
+
+## Phase 21 — Reliability
+
+**Branch:** `phase/21-reliability`
+**Objective:** Retries, timeouts, circuit breakers, idempotency, index
+repair, consistency checks, health status, graceful degradation
+("Qdrant unavailable -> PostgreSQL exact retrieval remains available").
+
+**Gate output:** _recorded at phase close_

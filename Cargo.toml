@@ -15,6 +15,7 @@ members = [
     "crates/memory-retrieval",
     "crates/memory-server",
     "sdks/rust",
+    "crates/memory-reliability",
     "crates/memory-classifier",
     "crates/memory-dedup",
     "crates/memory-conflict",
