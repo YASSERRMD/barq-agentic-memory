@@ -1,0 +1,14 @@
+{
+  "name": "barq-agent-memory",
+  "version": "0.1.0",
+  "description": "Barq agentic memory engine - Node.js bindings",
+  "license": "Apache-2.0",
+  "main": "memory.js",
+  "types": "memory.d.ts",
+  "napi": {
+    "name": "agent-memory"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}

@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
-exclude = ["crates/bindings/memory-bindings-python"]
+exclude = [
+    "crates/bindings/memory-bindings-python",
+    "crates/bindings/memory-bindings-node",
+]
 members = [
     "crates/memory-domain",
     "crates/memory-provider-api",
