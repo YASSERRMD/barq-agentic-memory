@@ -1,0 +1,18 @@
+[package]
+name = "memory-policy"
+description = "Governance hooks for the Barq memory engine: authorization, policy, encryption, audit, data classification."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+memory-domain.workspace = true
+async-trait.workspace = true
+aes-gcm = "0.10"
+serde.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

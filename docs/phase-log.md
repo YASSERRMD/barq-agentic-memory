@@ -535,6 +535,33 @@ facade wiring. Recorded honestly.
 
 ---
 
+## Phase 15 — Governance Hooks
+
+**Branch:** `phase/15-governance-hooks`
+**Objective:** Provider interfaces for authorization, policy,
+encryption, audit, and data classification. Scope dimensions tenant/
+organization/workspace/user/agent/session/task. Unauthorized memory
+must never reach the calling model.
+
+**Exit criteria:** Met — ScopeAuthorizer filters reads inside the engine
+(denied records look like absence, killing probing oracles); writes may
+narrow scope but never escape; AES-256-GCM protects content at rest in
+untrusted backends with tamper detection; sensitivity tiers escalate
+secret material; audit events cover attempts independent of outcomes.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (247 hermetic tests across 17 crates)
+```
+
+**Deviations:** 3 commits vs floor 20; cohesive hook suite + facade
+integration. Recorded honestly.
+
+---
+
 ## Phase 16 — Python Binding
 
 **Branch:** `phase/16-python-binding`
