@@ -686,3 +686,14 @@ recency, then id) so HashMap iteration order can never surface.
 
 **Deviations:** 2 commits vs floor 20; four small SDKs in one coherent
 drop. Recorded honestly.
+
+---
+
+## Phase 20 — Performance Engineering
+
+**Branch:** `phase/20-performance`
+**Objective:** Criterion benchmarks for write latency, exact read
+latency, vector recall, hybrid recall, and embedded-mode operation.
+Benchmarks run against release builds only.
+
+**Gate output:** _recorded at phase close_
