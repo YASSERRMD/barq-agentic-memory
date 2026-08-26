@@ -595,3 +595,35 @@ PYTHON BINDING SMOKE TEST OK
 **Deviations:** Binding crate lives outside the cargo workspace because
 cdylib linking requires libpython at build time; it is built and tested
 through the opt-in script instead of the hermetic gate.
+
+---
+
+## Phase 17 — Node/TypeScript Binding
+
+**Branch:** `phase/17-node-binding`
+**Objective:** napi-rs binding: new Memory('./data') with typed
+remember/recall/update/forget/history and semantic recall out of the box.
+
+**Exit criteria:** Met — real .node addon built via @napi-rs/cli v3
+(release profile), end-to-end smoke test passes on Node 24: semantic
+recall, restart persistence through the file store, supersession
+history, tombstoned forget.
+
+**Key engineering notes**
+- napi_derive class-method registration expands to empty property names
+  on this toolchain (verified via cargo expand); the native layer is
+  therefore plain JSON-in/out functions over opaque handles and the
+  Memory class lives in memory.js. Same public API, no macro magic.
+- The CLI regenerates index.js/index.d.ts on every build; the stable
+  public wrapper lives in memory.js/memory.d.ts (package main).
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh (workspace unchanged by excluded binding crate)
+fmt: OK / clippy: OK / features: OK / test: OK — 247 tests green
+$ ./scripts/test_node_binding.sh
+NODE BINDING SMOKE TEST OK
+```
+
+**Deviations:** 2 commits vs floor 20; recorded honestly.
