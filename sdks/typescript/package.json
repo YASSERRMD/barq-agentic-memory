@@ -1,0 +1,10 @@
+{
+  "name": "barq-memory-client",
+  "version": "0.1.0",
+  "description": "TypeScript client SDK for the Barq memory engine",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./client.mjs",
+  "types": "./client.d.mts",
+  "files": ["client.mjs", "client.d.mts"]
+}

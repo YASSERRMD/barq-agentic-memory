@@ -653,3 +653,36 @@ returns the created record, POST /v1/recall ranks the atlas fact first
 (score 0.636), /healthz returns 200.
 
 **Deviations:** 2 commits vs floor 20; cohesive server crate.
+
+---
+
+## Phase 19 — Client SDKs
+
+**Branch:** `phase/19-client-sdks`
+**Objective:** Rust, Python, and TypeScript client SDKs (plus .NET
+source) over the REST surface with identical API concepts:
+remember/recall/search/update/forget/history.
+
+**Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (254 hermetic tests; rust SDK adds 3 fake-transport tests)
+```
+
+**Live verification (scripts/test_sdks.sh):** server booted on :18099;
+Rust, Python, TypeScript, and .NET clients each ran the full lifecycle
+(remember -> recall -> update -> history -> forget). All four printed
+their SMOKE TEST OK line.
+
+**Defects fixed inside the phase:** (1) hashing embedder single-bucket
+collisions made unrelated texts tie exactly at 128 dimensions — flaky
+server route tests caught it; embedder now casts two independent votes
+per token and the executor tie-breaks deterministically (score, then
+recency, then id) so HashMap iteration order can never surface.
+
+**Deviations:** 2 commits vs floor 20; four small SDKs in one coherent
+drop. Recorded honestly.
