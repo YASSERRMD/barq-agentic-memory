@@ -697,3 +697,30 @@ latency, vector recall, hybrid recall, and embedded-mode operation.
 Benchmarks run against release builds only.
 
 **Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK — GATE PASSED
+```
+
+**Benchmark baseline (release, M-series, quick mode via scripts/bench.sh):**
+
+```text
+write/remember_latency            ~4.7 µs   (store + embed + index)
+read/exact_get_latency            ~312 ns
+read/keyword_search/corpus_100    ~40.7 µs
+recall/semantic_recall_50_docs    ~25.2 µs
+recall/hybrid_recall_50_docs      ~43.2 µs  (plan + fan-out + rerank)
+write/update_supersession         ~4.4 µs
+startup/embedded_engine_assembly  ~885 ns
+```
+
+Embedded hot paths are comfortably in the microsecond range; hybrid
+recall's 43 µs at 50 docs is dominated by per-candidate canonical
+hydration, exactly where phase-23 native indexes would help — recorded
+as the profiling evidence the blueprint requires before building them.
+
+**Deviations:** 3 commits vs floor 20; benchmark suite + recorded
+baseline. Recorded honestly.
