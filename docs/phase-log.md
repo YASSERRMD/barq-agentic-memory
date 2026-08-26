@@ -532,3 +532,39 @@ GATE PASSED  (233 hermetic tests across 16 crates)
 
 **Deviations:** 2 commits vs floor 20; cohesive sweeper module + thin
 facade wiring. Recorded honestly.
+
+---
+
+## Phase 16 — Python Binding
+
+**Branch:** `phase/16-python-binding`
+**Objective:** PyO3 + Maturin binding delivering the blueprint
+experience: `from agent_memory import Memory; Memory("./data")` with
+remember/recall/update/forget/history.
+
+**Exit criteria:** Met — real wheel built via maturin (uv venv,
+Python 3.9), end-to-end smoke test passes: semantic recall out of the
+box (built-in hashing embedder, zero network), restart persistence,
+supersession history, tombstoned forget. Cross-cutting defect fixed:
+text filters now AND word-level terms in embedded stores and PostgreSQL
+(non-contiguous keyword matches).
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (236 hermetic tests; binding crate excluded from workspace
+and verified via scripts/test_python_binding.sh)
+```
+
+**Live verification:**
+
+```text
+$ ./scripts/test_python_binding.sh
+PYTHON BINDING SMOKE TEST OK
+```
+
+**Deviations:** Binding crate lives outside the cargo workspace because
+cdylib linking requires libpython at build time; it is built and tested
+through the opt-in script instead of the hermetic gate.
