@@ -894,6 +894,7 @@ dependencies = [
  "memory-episodic",
  "memory-graph",
  "memory-lifecycle",
+ "memory-policy",
  "memory-procedural",
  "memory-prospective",
  "memory-provider-api",

@@ -1,0 +1,26 @@
+[package]
+name = "memory-bindings-node"
+description = "Node.js/TypeScript bindings for the Barq memory engine."
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/YASSERRMD/barq-agentic-memory"
+rust-version = "1.85"
+
+[lib]
+name = "memory_bindings_node"
+crate-type = ["cdylib"]
+
+[dependencies]
+memory-core = { path = "../../memory-core" }
+memory-domain = { path = "../../memory-domain" }
+memory-retrieval = { path = "../../memory-retrieval" }
+napi = { version = "3", default-features = false, features = ["napi4"] }
+napi-derive = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+
+[build-dependencies]
+napi-build = "2"
