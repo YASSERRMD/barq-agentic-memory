@@ -37,8 +37,13 @@ fn text_matches(record: &MemoryRecord, query: &MemoryQuery) -> bool {
     match query.text.as_deref() {
         None => true,
         Some(needle) => {
-            let needle = needle.trim().to_lowercase();
-            record.content.text.to_lowercase().contains(&needle)
+            // Every word must appear somewhere: "atlas postgresql"
+            // matches "Project Atlas uses PostgreSQL" without requiring
+            // a contiguous phrase.
+            let haystack = record.content.text.to_lowercase();
+            needle
+                .split_whitespace()
+                .all(|w| haystack.contains(&w.to_lowercase()))
         }
     }
 }
@@ -77,11 +82,15 @@ mod tests {
     }
 
     #[test]
-    fn text_match_ignores_case() {
+    fn text_match_ignores_case_and_spans_words() {
         let q = MemoryQuery::default().with_text("PREFERS EMAIL");
         assert!(matches_query(&record(), &q));
         let q = MemoryQuery::default().with_text("slack");
         assert!(!matches_query(&record(), &q));
+        let q = MemoryQuery::default().with_text("email contact customer");
+        assert!(matches_query(&record(), &q), "non-contiguous words AND together");
+        let q = MemoryQuery::default().with_text("email slack");
+        assert!(!matches_query(&record(), &q), "one missing word fails the whole filter");
     }
 
     #[test]

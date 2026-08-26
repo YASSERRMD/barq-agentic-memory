@@ -309,8 +309,11 @@ impl MemoryStoreProvider for PostgresStore {
             }
         }
         if let Some(text) = &query.text {
-            sql.push(" AND content_text ILIKE ")
-                .push_bind(format!("%{}%", text.trim()));
+            // Word-level AND mirrors the embedded stores' semantics.
+            for word in text.split_whitespace() {
+                sql.push(" AND content_text ILIKE ")
+                    .push_bind(format!("%{}%", word));
+            }
         }
 
         let snapshot = query.effective_valid_at();

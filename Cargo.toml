@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+exclude = ["crates/bindings/memory-bindings-python"]
 members = [
     "crates/memory-domain",
     "crates/memory-provider-api",
@@ -33,6 +34,7 @@ provider-local = { path = "crates/providers/provider-local" }
 provider-postgres = { path = "crates/providers/provider-postgres" }
 provider-redis = { path = "crates/providers/provider-redis" }
 memory-retrieval = { path = "crates/memory-retrieval" }
+memory-core = { path = "crates/memory-core" }
 memory-classifier = { path = "crates/memory-classifier" }
 memory-dedup = { path = "crates/memory-dedup" }
 memory-conflict = { path = "crates/memory-conflict" }
