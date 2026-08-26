@@ -653,3 +653,14 @@ returns the created record, POST /v1/recall ranks the atlas fact first
 (score 0.636), /healthz returns 200.
 
 **Deviations:** 2 commits vs floor 20; cohesive server crate.
+
+---
+
+## Phase 19 — Client SDKs
+
+**Branch:** `phase/19-client-sdks`
+**Objective:** Rust, Python, and TypeScript client SDKs (plus .NET
+source) over the REST surface with identical API concepts:
+remember/recall/search/update/forget/history.
+
+**Gate output:** _recorded at phase close_
