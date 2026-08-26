@@ -64,20 +64,24 @@ impl EmbeddingProvider for HashingEmbedder {
         Ok(texts
             .iter()
             .map(|text| {
-                // Feature hashing: each token votes into one bucket with
-                // a deterministic sign; L2 normalization makes cosine
-                // similarity reflect shared vocabulary.
+                // Feature hashing with two independent votes per token:
+                // single-bucket collisions made unrelated texts score
+                // identically at small dimensions, so each token now
+                // spreads across two buckets with independent signs.
                 let mut vec = vec![0.0_f32; self.dimensions];
                 for token in tokenize(text) {
-                    let mut hasher = DefaultHasher::new();
-                    token.hash(&mut hasher);
-                    let raw = hasher.finish();
-                    let bucket = if self.dimensions == 0 {
-                        0
-                    } else {
-                        (raw % self.dimensions as u64) as usize
-                    };
-                    vec[bucket] += if raw >> 63 == 1 { -1.0 } else { 1.0 };
+                    for salt in [0u8, 1] {
+                        let mut hasher = DefaultHasher::new();
+                        token.hash(&mut hasher);
+                        salt.hash(&mut hasher);
+                        let raw = hasher.finish();
+                        let bucket = if self.dimensions == 0 {
+                            0
+                        } else {
+                            (raw % self.dimensions as u64) as usize
+                        };
+                        vec[bucket] += if raw >> 63 == 1 { -0.5 } else { 0.5 };
+                    }
                 }
                 normalize(&mut vec);
                 vec

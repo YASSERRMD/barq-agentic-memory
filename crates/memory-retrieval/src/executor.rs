@@ -108,7 +108,16 @@ impl<'a> HybridExecutor<'a> {
                 }
             })
             .collect();
-        ranked.sort_by(|a, b| b.score.partial_cmp(&a.score).expect("finite scores"));
+        // Deterministic ordering: score desc, then recency desc, then id —
+        // hashing collisions produce exact ties and HashMap iteration
+        // order must never decide user-visible ranking.
+        ranked.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .expect("finite scores")
+                .then_with(|| b.record.created_at.cmp(&a.record.created_at))
+                .then_with(|| a.record.id.cmp(&b.record.id))
+        });
         ranked.truncate(request.budget as usize);
         Ok(ranked)
     }

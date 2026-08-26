@@ -14,6 +14,7 @@ members = [
     "crates/providers/provider-pgvector",
     "crates/memory-retrieval",
     "crates/memory-server",
+    "sdks/rust",
     "crates/memory-classifier",
     "crates/memory-dedup",
     "crates/memory-conflict",
