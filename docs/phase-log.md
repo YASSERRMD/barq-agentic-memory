@@ -627,3 +627,15 @@ NODE BINDING SMOKE TEST OK
 ```
 
 **Deviations:** 2 commits vs floor 20; recorded honestly.
+
+---
+
+## Phase 18 — Server Mode
+
+**Branch:** `phase/18-server-mode`
+**Objective:** Axum REST server exposing POST /v1/memories, GET/PATCH/
+DELETE /v1/memories/{id}, POST /v1/recall, POST /v1/search, GET
+/v1/memories/{id}/history, GET /v1/memories/{id}/provenance. Embedded
+and server modes share the same core engine.
+
+**Gate output:** _recorded at phase close_
