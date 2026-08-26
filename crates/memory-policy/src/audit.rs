@@ -69,4 +69,3 @@ impl Auditor for InMemoryAuditor {
         Ok(())
     }
 }
-

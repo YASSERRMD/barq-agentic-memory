@@ -10,7 +10,7 @@ pub mod authz;
 pub mod crypto;
 pub mod sensitivity;
 
-pub use audit::{AuditEvent, Auditor};
-pub use authz::{Authorizer, Principal};
+pub use audit::{AuditAction, AuditEvent, Auditor, InMemoryAuditor};
+pub use authz::{Authorizer, Principal, ScopeAuthorizer};
 pub use crypto::{AesGcmEncryptor, Encryptor, NoopEncryptor};
 pub use sensitivity::{DataClassifier, Sensitivity, SensitivityClassifier};

@@ -34,6 +34,8 @@ pub struct MemoryEngine {
     pub(crate) classifier: Option<Arc<dyn memory_classifier::MemoryClassifier>>,
     pub(crate) episodes: Option<std::sync::Arc<dyn memory_episodic::EpisodeStore>>,
     pub(crate) graph: Option<std::sync::Arc<dyn memory_graph::GraphProvider>>,
+    pub(crate) authorizer: Option<std::sync::Arc<dyn memory_policy::Authorizer>>,
+    pub(crate) auditor: Option<std::sync::Arc<dyn memory_policy::Auditor>>,
 }
 
 /// A canonical record returned with its similarity score.
@@ -127,7 +129,48 @@ impl MemoryEngine {
             classifier: None,
             episodes: None,
             graph: None,
+            authorizer: None,
+            auditor: None,
         })
+    }
+
+    /// Attaches authorization for read/write gating. Without one, all
+    /// scope-isolated records are visible — appropriate only for
+    /// single-tenant embedded use.
+    pub fn with_authorizer(
+        mut self,
+        authorizer: std::sync::Arc<dyn memory_policy::Authorizer>,
+    ) -> Self {
+        self.authorizer = Some(authorizer);
+        self
+    }
+
+    /// Attaches an audit sink for governed operations.
+    pub fn with_auditor(mut self, auditor: std::sync::Arc<dyn memory_policy::Auditor>) -> Self {
+        self.auditor = Some(auditor);
+        self
+    }
+
+    pub(crate) async fn audit(
+        &self,
+        principal: &str,
+        action: memory_policy::AuditAction,
+        record_id: Option<MemoryId>,
+        allowed: bool,
+        detail: &str,
+    ) {
+        if let Some(auditor) = &self.auditor {
+            let _ = auditor
+                .record(memory_policy::AuditEvent {
+                    at: chrono::Utc::now(),
+                    principal: principal.to_string(),
+                    action,
+                    record_id,
+                    allowed,
+                    detail: detail.to_string(),
+                })
+                .await;
+        }
     }
 
     /// Attaches an entity graph fed by relation extraction on writes.

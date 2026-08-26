@@ -1,7 +1,7 @@
 //! Sensitivity classification and audit events.
 
 use async_trait::async_trait;
-use memory_domain::{MemoryRecord, MemoryResult, MemoryType};
+use memory_domain::{MemoryRecord, MemoryType};
 use serde::{Deserialize, Serialize};
 
 /// Sensitivity tiers, lowest to highest.

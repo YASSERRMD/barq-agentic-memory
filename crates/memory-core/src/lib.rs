@@ -6,6 +6,7 @@
 pub mod assembly;
 pub mod engine;
 pub mod episodes;
+pub mod governance;
 pub mod lifecycle;
 pub mod planning;
 pub mod procedures;

@@ -110,11 +110,19 @@ mod tests {
     async fn roundtrip_recovers_plaintext() {
         let key = AesGcmEncryptor::generate_key();
         let enc = AesGcmEncryptor::new(&key).expect("key");
-        let ct = enc.encrypt("Customer prefers email").await.expect("encrypt");
+        let ct = enc
+            .encrypt("Customer prefers email")
+            .await
+            .expect("encrypt");
         assert_ne!(ct, b"Customer prefers email");
-        assert!(enc.encrypt("same input twice").await != enc.encrypt("same input twice").await,
-            "random nonces must vary ciphertexts");
-        assert_eq!(enc.decrypt(&ct).await.expect("decrypt"), "Customer prefers email");
+        assert!(
+            enc.encrypt("same input twice").await != enc.encrypt("same input twice").await,
+            "random nonces must vary ciphertexts"
+        );
+        assert_eq!(
+            enc.decrypt(&ct).await.expect("decrypt"),
+            "Customer prefers email"
+        );
     }
 
     #[tokio::test]

@@ -29,6 +29,12 @@ impl Principal {
         self.roles.push(role.into());
         self
     }
+
+    /// Pins the acting scope.
+    pub fn with_scope(mut self, scope: memory_domain::MemoryScope) -> Self {
+        self.scope = scope;
+        self
+    }
 }
 
 /// Read/write authorization over records.
