@@ -750,3 +750,14 @@ legitimately filtered by every backend, so the probe saw nothing.
 list_ids() joined the provider contract for exactly this purpose.
 
 **Deviations:** 2 commits vs floor 20. Recorded honestly.
+
+---
+
+## Phase 22 — Scale-Out
+
+**Branch:** `phase/22-scale-out`
+**Objective:** Separate API nodes from embedding/indexing/lifecycle/
+repair workers, keeping non-critical indexing work off the synchronous
+write path.
+
+**Gate output:** _recorded at phase close_
