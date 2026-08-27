@@ -26,12 +26,22 @@ Under active development, phase by phase (see
 [`docs/phase-log.md`](docs/phase-log.md) and
 [`docs/architecture.md`](docs/architecture.md)).
 
-| Release | Scope |
-|---|---|
-| v0.1 | domain + local embedded CRUD |
-| v0.2 | PostgreSQL + Redis |
-| v0.3 | pgvector semantic recall |
-| ... | full plan in the phase log |
+| Release | Scope | Status |
+|---|---|---|
+| v0.1 | domain + local embedded CRUD | done (phase 01) |
+| v0.2 | PostgreSQL + Redis | done (phases 02-03) |
+| v0.3 | pgvector semantic recall | done (phase 04) |
+| v0.4 | classification + deduplication | done (phases 07-08) |
+| v0.5 | conflicts + temporal truth | done (phase 09) |
+| v0.6 | episodic + Python binding | done (phases 10, 16) |
+| v0.7 | server mode | done (phase 18) |
+| v0.8 | graph + procedural + prospective | done (phases 11-13) |
+| v0.9 | governance + lifecycle + advanced retrieval | done (phases 05-06, 14-15) |
+| v1.0 | stable provider API, embedded/server modes, SDKs, observability, HA guidance | SDKs/reliability/scale-out done (19-22); observability hardening remains |
+
+All 24 blueprint phases implemented; see docs/phase-log.md for the full
+ledger and docs/native-index-roadmap.md for the deliberately deferred
+index work.
 
 ## Development
 
