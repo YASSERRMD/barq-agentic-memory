@@ -273,6 +273,16 @@ impl MemoryEngine {
         Ok(())
     }
 
+    /// Stores a record without inline vector/graph indexing.
+    ///
+    /// Async-mode writers use this plus the indexing worker: non-critical
+    /// indexing stays off the synchronous write path (blueprint rule).
+    pub async fn write_unindexed(&self, request: RememberRequest) -> MemoryResult<MemoryRecord> {
+        request.validated(&self.config)?;
+        let record = request.into_record(self.config.default_scope.clone());
+        self.store.put(&record).await
+    }
+
     /// Stores a new memory, honoring deduplication when enabled.
     pub async fn remember(&self, request: RememberRequest) -> MemoryResult<MemoryRecord> {
         request.validated(&self.config)?;

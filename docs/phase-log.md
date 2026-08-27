@@ -750,3 +750,30 @@ legitimately filtered by every backend, so the probe saw nothing.
 list_ids() joined the provider contract for exactly this purpose.
 
 **Deviations:** 2 commits vs floor 20. Recorded honestly.
+
+---
+
+## Phase 22 — Scale-Out
+
+**Branch:** `phase/22-scale-out`
+**Objective:** Separate API nodes from embedding/indexing/lifecycle/
+repair workers, keeping non-critical indexing work off the synchronous
+write path.
+
+**Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (265 hermetic tests across 20 crates)
+```
+
+**Design notes:** worker cadences are data (Worker::interval), the
+ticker never aborts on worker errors, and tick_once is instant so
+schedulers and tests share one code path. Consolidation workers
+(dedup sweeps, episodic compaction) plug into the same trait as
+scale demands them.
+
+**Deviations:** 2 commits vs floor 20. Recorded honestly.
