@@ -787,3 +787,19 @@ scale demands them.
 need, and NOT in the first production release. This phase therefore
 delivers the profiling evidence, the decision framework, and the
 trigger conditions — deliberately no index implementations.
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (265 hermetic tests across 20 crates)
+```
+
+**Deliverable:** docs/native-index-roadmap.md — phase-20 profiling
+baseline, per-index trigger conditions tied to production telemetry,
+and five design constraints any future index must satisfy. README
+release table updated to reflect completion of all blueprint phases.
+
+**Deviations:** By definition this phase ships documentation, not code;
+the blueprint forbids building these indexes in the first release.
