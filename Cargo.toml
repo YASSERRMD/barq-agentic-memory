@@ -15,6 +15,7 @@ members = [
     "crates/memory-retrieval",
     "crates/memory-server",
     "sdks/rust",
+    "crates/memory-reliability",
     "crates/memory-classifier",
     "crates/memory-dedup",
     "crates/memory-conflict",
@@ -42,6 +43,7 @@ provider-redis = { path = "crates/providers/provider-redis" }
 memory-retrieval = { path = "crates/memory-retrieval" }
 memory-core = { path = "crates/memory-core" }
 memory-server = { path = "crates/memory-server" }
+memory-reliability = { path = "crates/memory-reliability" }
 memory-classifier = { path = "crates/memory-classifier" }
 memory-dedup = { path = "crates/memory-dedup" }
 memory-conflict = { path = "crates/memory-conflict" }

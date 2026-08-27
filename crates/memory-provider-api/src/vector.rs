@@ -129,6 +129,15 @@ pub trait VectorProvider: Send + Sync {
 
     /// Removes any vector bound to the given memory id. Idempotent.
     async fn delete(&self, memory_id: &MemoryId) -> MemoryResult<()>;
+
+    /// All indexed memory ids, for repairs and consistency checks.
+    ///
+    /// Similarity search cannot enumerate (zero-score results are
+    /// legitimately filtered), so repairs use this instead. Minimal
+    /// backends may leave the default empty listing.
+    async fn list_ids(&self) -> MemoryResult<Vec<MemoryId>> {
+        Ok(Vec::new())
+    }
 }
 
 #[cfg(test)]
