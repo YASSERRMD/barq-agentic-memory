@@ -777,3 +777,13 @@ schedulers and tests share one code path. Consolidation workers
 scale demands them.
 
 **Deviations:** 2 commits vs floor 20. Recorded honestly.
+
+---
+
+## Phase 23 — Optional Native Indexes (Design Notes)
+
+**Branch:** `phase/23-native-index-notes`
+**Objective:** Per the blueprint: only after profiling proves a real
+need, and NOT in the first production release. This phase therefore
+delivers the profiling evidence, the decision framework, and the
+trigger conditions — deliberately no index implementations.
