@@ -223,7 +223,7 @@ impl MemoryEngine {
     }
 
     /// Builds an equality filter from the pinned dimensions of a scope.
-    fn scope_filter(scope: &MemoryScope) -> MetadataFilter {
+    pub(crate) fn scope_filter(scope: &MemoryScope) -> MetadataFilter {
         let mut filter = MetadataFilter::default();
         for (key, value) in [
             ("tenant_id", &scope.tenant_id),

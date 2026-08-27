@@ -88,6 +88,16 @@ impl VectorProvider for InMemoryVectorStore {
         self.vectors.write().expect("poisoned").remove(memory_id);
         Ok(())
     }
+
+    async fn list_ids(&self) -> MemoryResult<Vec<MemoryId>> {
+        Ok(self
+            .vectors
+            .read()
+            .expect("poisoned")
+            .keys()
+            .copied()
+            .collect())
+    }
 }
 
 #[cfg(test)]

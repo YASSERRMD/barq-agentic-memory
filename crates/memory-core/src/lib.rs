@@ -12,6 +12,7 @@ pub mod planning;
 pub mod procedures;
 pub mod prospective;
 pub mod registry;
+pub mod reliability;
 pub mod requests;
 
 pub use assembly::{AssemblyPlan, ensure_satisfiable};
