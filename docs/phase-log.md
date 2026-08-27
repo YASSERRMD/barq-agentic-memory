@@ -735,3 +735,18 @@ repair, consistency checks, health status, graceful degradation
 ("Qdrant unavailable -> PostgreSQL exact retrieval remains available").
 
 **Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (262 hermetic tests across 19 crates)
+```
+
+**Defects fixed inside the phase:** repairs originally enumerated the
+index through a zero-vector similarity probe — zero-score results are
+legitimately filtered by every backend, so the probe saw nothing.
+list_ids() joined the provider contract for exactly this purpose.
+
+**Deviations:** 2 commits vs floor 20. Recorded honestly.
