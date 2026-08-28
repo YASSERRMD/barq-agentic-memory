@@ -1,5 +1,9 @@
 # barq-agentic-memory
 
+<p align="center">
+  <img src="docs/assets/logo.png" alt="barq-agentic-memory" width="220" />
+</p>
+
 A standalone, high-performance, **framework-neutral memory engine** for AI
 agents, written in Rust. Runs embedded in your process or as a server, and is
 consumed by any agent or framework through native bindings, REST, or gRPC.
@@ -19,6 +23,18 @@ provenance, retention, scoping.
 - Bitemporal facts with supersession history — older truths are retired,
   never silently destroyed.
 - Works with zero LLM dependency when callers supply structured memories.
+
+## Architecture
+
+<p align="center">
+  <img src="docs/assets/architecture.png" alt="barq-agentic-memory architecture: clients, engine API, memory core, provider registry, backends" width="860" />
+</p>
+
+Five layers: clients (bindings / server / SDKs) → the six-concept engine API →
+the memory core (classify → deduplicate → resolve conflicts → route & rank) →
+the provider registry → replaceable backends (local redb, PostgreSQL, Redis,
+pgvector, entity graph). Full details in
+[`docs/architecture.md`](docs/architecture.md).
 
 ## Status
 
