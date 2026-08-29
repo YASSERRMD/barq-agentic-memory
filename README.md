@@ -12,6 +12,7 @@ Six concepts. Five memory types. Any backend. Zero LLM required.
 [![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B-orange?logo=rust)](Cargo.toml)
 [![Tests](https://img.shields.io/badge/tests-265%20passing-brightgreen)](docs/phase-log.md)
 [![Blueprint](https://img.shields.io/badge/blueprint-24%2F24%20phases%20complete-gold)](docs/phase-log.md)
+[![Built with opencode](https://img.shields.io/badge/built%20with-opencode%20%C2%B7%20ox%20alpha-8b949e?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=)](https://opencode.ai)
 
 [Architecture](docs/architecture.md) · [Phase Ledger](docs/phase-log.md) · [API Reference](#the-api) · [Benchmarks](#performance)
 
@@ -198,6 +199,13 @@ cargo test --workspace
 The project was built phase-by-phase against a fixed blueprint; the full
 ledger — objectives, gate output, and honest deviations for all 24 phases —
 lives in [`docs/phase-log.md`](docs/phase-log.md).
+
+## Built with
+
+This engine was developed end-to-end with **[opencode](https://opencode.ai)**
+driven by the **ox alpha model** — all 24 blueprint phases, from engine
+contract to SDKs, were planned, implemented, tested, and shipped through
+that agent workflow.
 
 ## License
 
