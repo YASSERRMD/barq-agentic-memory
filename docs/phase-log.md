@@ -814,3 +814,20 @@ blueprint's tracing stack into the engine and server so deployments get
 structured spans/logs (OTLP-ready) without changing any public API.
 
 **Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (266 hermetic tests; tracing test asserts method/path/
+status/latency land in structured logs)
+```
+
+**Defects fixed inside the change:** axum layer ordering — `.layer()`
+only wraps routes registered before it; the middleware now sits at the
+end of the chain. Thread-local test subscribers proved flaky under the
+parallel harness; the test uses a global subscriber with a static
+buffer instead.
+
+**Deviations:** 2 commits. Release tag: v0.9.0 (see CHANGELOG.md).
