@@ -803,3 +803,14 @@ release table updated to reflect completion of all blueprint phases.
 
 **Deviations:** By definition this phase ships documentation, not code;
 the blueprint forbids building these indexes in the first release.
+
+---
+
+## Post-Blueprint — Observability Hardening
+
+**Branch:** `feat/observability`
+**Objective:** Close the last v1.0 gap from the release plan: wire the
+blueprint's tracing stack into the engine and server so deployments get
+structured spans/logs (OTLP-ready) without changing any public API.
+
+**Gate output:** _recorded at phase close_
