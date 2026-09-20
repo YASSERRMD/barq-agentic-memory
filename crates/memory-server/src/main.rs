@@ -8,6 +8,14 @@ use memory_server::serve;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // RUST_LOG controls verbosity (info by default); swap the layer for
+    // an OTLP exporter in deployments that feed collectors.
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
+        .init();
     let addr: std::net::SocketAddr = std::env::var("BARQ_ADDR")
         .unwrap_or_else(|_| "127.0.0.1:8080".into())
         .parse()?;

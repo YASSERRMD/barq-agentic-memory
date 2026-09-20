@@ -62,6 +62,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "uuid", "chrono", "json"] }
 thiserror = "2"
+tracing = { version = "0.1", features = ["std"] }
+futures = "0.3"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 uuid = { version = "1", features = ["v7", "serde"] }
 

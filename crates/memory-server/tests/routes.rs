@@ -216,3 +216,51 @@ async fn healthz_is_alive() {
     let (status, _) = call(&app, "GET", "/healthz", None).await;
     assert_eq!(status, StatusCode::OK);
 }
+
+#[tokio::test]
+async fn requests_emit_structured_traces() {
+    // Global subscriber + static buffer: deterministic under the
+    // parallel test harness (thread-local defaults are not).
+    use std::io::Write;
+    use std::sync::{Mutex, Once};
+
+    static LOG: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+    static INIT: Once = Once::new();
+
+    #[derive(Clone)]
+    struct StaticWriter;
+    impl Write for StaticWriter {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            LOG.lock().unwrap().extend_from_slice(buf);
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    INIT.call_once(|| {
+        let subscriber = tracing_subscriber::fmt()
+            .with_writer(|| StaticWriter)
+            .with_ansi(false)
+            .finish();
+        let _ = tracing::subscriber::set_global_default(subscriber);
+    });
+    LOG.lock().unwrap().clear();
+
+    let app = app().await;
+    let (status, _) = call(
+        &app,
+        "POST",
+        "/v1/memories",
+        Some(serde_json::json!({ "text": "trace me" })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+
+    let logged = String::from_utf8(LOG.lock().unwrap().clone()).unwrap();
+    assert!(logged.contains("POST"), "method recorded: {logged}");
+    assert!(logged.contains("/v1/memories"), "path recorded: {logged}");
+    assert!(logged.contains("201"), "status recorded: {logged}");
+    assert!(logged.contains("elapsed_ms"), "latency recorded: {logged}");
+}
