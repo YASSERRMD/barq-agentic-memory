@@ -14,7 +14,7 @@ Six concepts. Five memory types. Any backend. Zero LLM required.
 [![Blueprint](https://img.shields.io/badge/blueprint-24%2F24%20phases%20complete-gold)](docs/phase-log.md)
 [![Built with opencode](https://img.shields.io/badge/built%20with-opencode%20%C2%B7%20ox%20alpha-8b949e?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=)](https://opencode.ai)
 
-[Architecture](docs/architecture.md) · [Phase Ledger](docs/phase-log.md) · [API Reference](#the-api) · [Benchmarks](#performance)
+[Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md) · [Phase Ledger](docs/phase-log.md) · [API Reference](#the-api) · [Benchmarks](#performance)
 
 </div>
 
@@ -157,6 +157,7 @@ Release builds, Apple Silicon, in-memory engine ([`scripts/bench.sh`](scripts/be
 - **Circuit breakers + retries** — domain-aware retry classification, trip-after-N failure fast
 - **Self-repair** — `repair_vector_index()` reconciles ghosts and missing embeddings idempotently
 - **Scale-out ready** — background workers own indexing/sweeps off the synchronous write path
+- **Observable** — tracing spans on every engine operation, structured HTTP request logs (method/path/status/latency), `RUST_LOG`-driven, OTLP-ready layer swap
 
 ## Verification
 

@@ -285,6 +285,8 @@ impl MemoryEngine {
 
     /// Stores a new memory, honoring deduplication when enabled.
     pub async fn remember(&self, request: RememberRequest) -> MemoryResult<MemoryRecord> {
+        let span = tracing::info_span!("memory.remember", memory_type = ?request.memory_type);
+        let _guard = span.enter();
         request.validated(&self.config)?;
         let record = request.into_record(self.config.default_scope.clone());
 
@@ -521,6 +523,8 @@ impl MemoryEngine {
     /// Semantic similarity joins this path in later phases; callers
     /// use the same query shape either way.
     pub async fn search(&self, mut query: MemoryQuery) -> MemoryResult<Vec<MemoryRecord>> {
+        let span = tracing::info_span!("memory.search", limit = query.limit);
+        let _guard = span.enter();
         query = query.validated()?;
         if query.limit > self.config.limits.max_batch_size.min(u32::MAX as usize) as u32 {
             // Batch ceiling doubles as a sane result budget for MVP.
@@ -540,6 +544,8 @@ impl MemoryEngine {
     /// Returns the new record. The predecessor is retired to
     /// [`memory_domain::MemoryStatus::Superseded`].
     pub async fn update(&self, request: UpdateRequest) -> MemoryResult<MemoryRecord> {
+        let span = tracing::info_span!("memory.update", id = %request.id);
+        let _guard = span.enter();
         if request.content.is_empty() {
             return Err(MemoryError::validation("content", "must not be empty"));
         }
@@ -585,6 +591,8 @@ impl MemoryEngine {
         top_k: u32,
         scope: &MemoryScope,
     ) -> MemoryResult<Vec<ScoredMemory>> {
+        let span = tracing::info_span!("memory.recall_semantic", top_k = top_k);
+        let _guard = span.enter();
         let (Some(vector), Some(embedder)) = (&self.vector, &self.embedder) else {
             return Err(MemoryError::Unsupported(
                 "semantic recall requires a vector backend and embedder".into(),
@@ -628,6 +636,8 @@ impl MemoryEngine {
     /// Soft-deletes a memory (tombstone); physical removal happens in
     /// lifecycle sweeps. Returns whether this call changed anything.
     pub async fn forget(&self, id: MemoryId, scope: &MemoryScope) -> MemoryResult<bool> {
+        let span = tracing::info_span!("memory.forget", id = %id);
+        let _guard = span.enter();
         let Some(mut record) = self.store.get(&id, scope).await? else {
             return Ok(false);
         };

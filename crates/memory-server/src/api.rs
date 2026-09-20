@@ -15,6 +15,38 @@ use std::sync::Arc;
 use memory_core::{MemoryEngine, RememberRequest, UpdateRequest};
 use memory_domain::{MemoryId, MemoryQuery, MemoryScopeBuilder, MemoryType};
 
+/// Per-request tracing: method, path, status, latency — one info line
+/// per call, span-scoped so engine events nest underneath.
+async fn trace_requests(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let method = request.method().clone();
+    let path = request.uri().path().to_string();
+    let start = std::time::Instant::now();
+    let span = tracing::info_span!("http", %method, path = %path);
+    let response = async_move_guard(span.clone(), request, next).await;
+    let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
+    tracing::info!(
+        method = %method,
+        path = %path,
+        status = response.status().as_u16(),
+        elapsed_ms = format!("{elapsed_ms:.2}"),
+        "request"
+    );
+    response
+}
+
+/// Keeps the span active across the handler await.
+async fn async_move_guard(
+    span: tracing::Span,
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use tracing::Instrument as _;
+    next.run(request).instrument(span).await
+}
+
 /// Builds the full application router.
 pub fn router(state: ServerState) -> Router {
     let state = Arc::new(state);
@@ -29,6 +61,8 @@ pub fn router(state: ServerState) -> Router {
         .route("/v1/memories/{id}/provenance", get(get_provenance))
         .route("/v1/recall", post(recall))
         .route("/v1/search", post(search))
+        // Layers wrap only the routes registered above them.
+        .layer(axum::middleware::from_fn(trace_requests))
         .with_state(state)
 }
 
