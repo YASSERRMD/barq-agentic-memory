@@ -93,7 +93,14 @@ impl MemoryEngine {
             .into_iter()
             .filter_map(|r| {
                 let view = GoalView::from_record(&r)?;
-                Some((r.clone(), view.metadata().effective_state(Utc::now())))
+                let effective = view.metadata().effective_state(Utc::now());
+                // Terminal goals (completed/cancelled) are not open,
+                // even though their canonical records stay active.
+                let open = match effective {
+                    EffectiveGoalState::Expired => true,
+                    EffectiveGoalState::Stored(state) => !state.is_terminal(),
+                };
+                open.then_some((r, effective))
             })
             .collect())
     }

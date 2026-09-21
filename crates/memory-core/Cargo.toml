@@ -39,6 +39,13 @@ provider-redis = { workspace = true, optional = true }
 provider-pgvector = { workspace = true, optional = true }
 
 [dev-dependencies]
+memory-testkit.workspace = true
+memory-policy.workspace = true
+memory-reliability.workspace = true
+memory-retrieval.workspace = true
+memory-graph.workspace = true
+memory-procedural.workspace = true
+memory-prospective.workspace = true
 tokio.workspace = true
 criterion = "0.5"
 

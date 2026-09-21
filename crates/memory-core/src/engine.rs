@@ -38,6 +38,18 @@ pub struct MemoryEngine {
     pub(crate) auditor: Option<std::sync::Arc<dyn memory_policy::Auditor>>,
 }
 
+/// Explicit provider wiring for [`MemoryEngine::from_parts`].
+pub struct EngineParts {
+    /// Canonical store (required).
+    pub store: Arc<dyn MemoryStoreProvider>,
+    /// Working-memory store (required).
+    pub working: Arc<dyn WorkingMemoryProvider>,
+    /// Vector index; omit to disable semantic recall.
+    pub vector: Option<Arc<dyn VectorProvider>>,
+    /// Embedder; required together with `vector`.
+    pub embedder: Option<Arc<dyn EmbeddingProvider>>,
+}
+
 /// A canonical record returned with its similarity score.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScoredMemory {
@@ -186,6 +198,28 @@ impl MemoryEngine {
     ) -> Self {
         self.episodes = Some(store);
         self
+    }
+
+    /// Assembles an engine from explicit provider parts.
+    ///
+    /// The dependency-injection constructor: suites (and embedders of
+    /// unusual runtimes) supply every provider; optional capabilities
+    /// attach afterwards via `with_*` builders. Embedded/server modes
+    /// with stock backends should keep using [`from_config`].
+    pub fn from_parts(config: EngineConfig, parts: EngineParts) -> MemoryResult<Self> {
+        config.validated()?;
+        Ok(Self {
+            config,
+            store: parts.store,
+            working: parts.working,
+            vector: parts.vector,
+            embedder: parts.embedder,
+            classifier: None,
+            episodes: None,
+            graph: None,
+            authorizer: None,
+            auditor: None,
+        })
     }
 
     /// Attaches a classifier for auto-classified writes.
