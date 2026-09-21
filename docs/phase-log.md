@@ -842,3 +842,19 @@ injection) plus a comprehensive suite driving every engine subsystem
 end-to-end through mocks — no infrastructure, fully deterministic.
 
 **Gate output:** _recorded at phase close_
+
+**Gate output:**
+
+```text
+$ ./scripts/gate.sh
+fmt: OK / clippy: OK / features: OK / test: OK
+GATE PASSED  (297 hermetic tests: +11 testkit, +20 comprehensive suite)
+```
+
+**Defect found by the suite:** terminal goals (completed/cancelled)
+still surfaced in recall_open_goals — the canonical record's Active
+status masked the goal-state terminality. Fixed forward with a
+goal-state terminality filter.
+
+**Deviations:** 2 commits. The testkit is a public crate: downstream
+embedders get the same mocks the engine's own suite uses.
