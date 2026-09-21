@@ -17,6 +17,7 @@ members = [
     "sdks/rust",
     "crates/memory-reliability",
     "crates/memory-workers",
+    "crates/memory-testkit",
     "crates/memory-classifier",
     "crates/memory-dedup",
     "crates/memory-conflict",
@@ -46,6 +47,7 @@ memory-core = { path = "crates/memory-core", version = "0.1.0" }
 memory-server = { path = "crates/memory-server", version = "0.1.0" }
 memory-reliability = { path = "crates/memory-reliability", version = "0.1.0" }
 memory-workers = { path = "crates/memory-workers", version = "0.1.0" }
+memory-testkit = { path = "crates/memory-testkit", version = "0.1.0" }
 memory-classifier = { path = "crates/memory-classifier", version = "0.1.0" }
 memory-dedup = { path = "crates/memory-dedup", version = "0.1.0" }
 memory-conflict = { path = "crates/memory-conflict", version = "0.1.0" }

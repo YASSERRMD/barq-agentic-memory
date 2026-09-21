@@ -831,3 +831,14 @@ parallel harness; the test uses a global subscriber with a static
 buffer instead.
 
 **Deviations:** 2 commits. Release tag: v0.9.0 (see CHANGELOG.md).
+
+---
+
+## Post-Blueprint — Complete Mock Test Suite
+
+**Branch:** `test/mock-suite`
+**Objective:** A reusable testkit of mock providers (recording + failure
+injection) plus a comprehensive suite driving every engine subsystem
+end-to-end through mocks — no infrastructure, fully deterministic.
+
+**Gate output:** _recorded at phase close_
