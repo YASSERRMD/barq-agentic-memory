@@ -1,0 +1,138 @@
+# Quality gate: fmt + clippy (-D warnings) + full hermetic suite.
+# Note: per repo policy this workflow is informational — merges never
+# wait on it. It exists to catch regressions between releases.
+name: gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    name: fmt + clippy + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Gate (fmt, clippy -D warnings, tests, feature combos)
+        run: ./scripts/gate.sh
+
+  live-postgres:
+    name: live postgres + pgvector
+    runs-on: ubuntu-latest
+    services:
+      pg:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: barq
+          POSTGRES_PASSWORD: barq
+          POSTGRES_DB: barq_memories
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U barq"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Enable vector extension
+        run: psql "postgres://barq:barq@localhost:5432/barq_memories" -c 'CREATE EXTENSION IF NOT EXISTS vector'
+      - name: provider-postgres live suite
+        run: cargo test -p provider-postgres --test pg_live -- --ignored --test-threads=1
+        env:
+          BARQ_TEST_PG_URL: postgres://barq:barq@localhost:5432/barq_memories
+      - name: provider-pgvector live suite
+        run: cargo test -p provider-pgvector --test pgvector_live -- --ignored --test-threads=1
+        env:
+          BARQ_TEST_PGVECTOR_URL: postgres://barq:barq@localhost:5432/barq_memories
+
+  live-redis:
+    name: live redis
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: provider-redis live suite
+        run: cargo test -p provider-redis --test redis_live -- --ignored --test-threads=1
+        env:
+          BARQ_TEST_REDIS_URL: redis://localhost:6379
+
+  node-binding:
+    name: node binding smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build addon and run smoke test
+        run: ./scripts/test_node_binding.sh
+
+  python-binding:
+    name: python binding smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel and run smoke test
+        run: |
+          python -m pip install --upgrade pip maturin
+          cd crates/bindings/memory-bindings-python
+          maturin build --out dist --release
+          pip install dist/*.whl
+          python - <<'PY'
+          from agent_memory import Memory
+          m = Memory()
+          saved = m.remember("CI smoke fact", user_id="42")
+          hits = m.recall("ci smoke fact", user_id="42", limit=3)
+          assert any(h["id"] == saved["id"] for h in hits), "recall failed"
+          print("PYTHON CI SMOKE OK")
+          PY
+
+  sdks:
+    name: four sdk smoke against live server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Boot server and exercise all SDKs
+        run: ./scripts/test_sdks.sh

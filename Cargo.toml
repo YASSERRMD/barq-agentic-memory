@@ -36,26 +36,26 @@ repository = "https://github.com/YASSERRMD/barq-agentic-memory"
 rust-version = "1.85"
 
 [workspace.dependencies]
-memory-domain = { path = "crates/memory-domain" }
-memory-provider-api = { path = "crates/memory-provider-api" }
-provider-local = { path = "crates/providers/provider-local" }
-provider-postgres = { path = "crates/providers/provider-postgres" }
-provider-redis = { path = "crates/providers/provider-redis" }
-memory-retrieval = { path = "crates/memory-retrieval" }
-memory-core = { path = "crates/memory-core" }
-memory-server = { path = "crates/memory-server" }
-memory-reliability = { path = "crates/memory-reliability" }
-memory-workers = { path = "crates/memory-workers" }
-memory-classifier = { path = "crates/memory-classifier" }
-memory-dedup = { path = "crates/memory-dedup" }
-memory-conflict = { path = "crates/memory-conflict" }
-memory-episodic = { path = "crates/memory-episodic" }
-memory-graph = { path = "crates/memory-graph" }
-memory-procedural = { path = "crates/memory-procedural" }
-memory-prospective = { path = "crates/memory-prospective" }
-memory-lifecycle = { path = "crates/memory-lifecycle" }
-memory-policy = { path = "crates/memory-policy" }
-provider-pgvector = { path = "crates/providers/provider-pgvector" }
+memory-domain = { path = "crates/memory-domain", version = "0.1.0" }
+memory-provider-api = { path = "crates/memory-provider-api", version = "0.1.0" }
+provider-local = { path = "crates/providers/provider-local", version = "0.1.0" }
+provider-postgres = { path = "crates/providers/provider-postgres", version = "0.1.0" }
+provider-redis = { path = "crates/providers/provider-redis", version = "0.1.0" }
+memory-retrieval = { path = "crates/memory-retrieval", version = "0.1.0" }
+memory-core = { path = "crates/memory-core", version = "0.1.0" }
+memory-server = { path = "crates/memory-server", version = "0.1.0" }
+memory-reliability = { path = "crates/memory-reliability", version = "0.1.0" }
+memory-workers = { path = "crates/memory-workers", version = "0.1.0" }
+memory-classifier = { path = "crates/memory-classifier", version = "0.1.0" }
+memory-dedup = { path = "crates/memory-dedup", version = "0.1.0" }
+memory-conflict = { path = "crates/memory-conflict", version = "0.1.0" }
+memory-episodic = { path = "crates/memory-episodic", version = "0.1.0" }
+memory-graph = { path = "crates/memory-graph", version = "0.1.0" }
+memory-procedural = { path = "crates/memory-procedural", version = "0.1.0" }
+memory-prospective = { path = "crates/memory-prospective", version = "0.1.0" }
+memory-lifecycle = { path = "crates/memory-lifecycle", version = "0.1.0" }
+memory-policy = { path = "crates/memory-policy", version = "0.1.0" }
+provider-pgvector = { path = "crates/providers/provider-pgvector", version = "0.1.0" }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 serde = { version = "1", features = ["derive"] }
