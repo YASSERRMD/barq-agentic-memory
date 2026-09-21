@@ -1312,6 +1312,7 @@ dependencies = [
  "memory-provider-api",
  "memory-reliability",
  "memory-retrieval",
+ "memory-testkit",
  "provider-local",
  "provider-pgvector",
  "provider-postgres",
@@ -1471,6 +1472,20 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "memory-testkit"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "memory-classifier",
+ "memory-domain",
+ "memory-provider-api",
+ "provider-local",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
